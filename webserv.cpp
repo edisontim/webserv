@@ -53,7 +53,9 @@ enum DT {CURRENT, LAST_MODIFIED};
 //TODO
 // careful for the correction pdf, we need to poll for both read and write at the same time !!
 // 
-// set the sockets to non-blocking 
+// set the sockets to non-blocking
+
+
 int	ft_strlen(const char *str)
 {
 	int i;
