@@ -22,6 +22,7 @@ class Internet_socket
 		struct addrinfo	hints;
 		int				socket_fd;
 		std::string		_service;
+
 	public:
 		Internet_socket(const char* hostname = NULL, const char *service = "80");
 		~Internet_socket();

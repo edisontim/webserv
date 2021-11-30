@@ -7,7 +7,8 @@ Internet_socket::Internet_socket(const char* hostname, const char *service) : _s
 	int yes = 1;
 
 	bzero(&hints, sizeof(hints));
-	//don't worry about IPv4 or IPv6
+	
+	//Take both IPv4 or IPv6
 	hints.ai_family = AF_UNSPEC;
 
 	//stream socket
@@ -15,7 +16,8 @@ Internet_socket::Internet_socket(const char* hostname, const char *service) : _s
 	
 	//get my IP automatically
 	hints.ai_flags = AI_PASSIVE;
-	//hints.ai_protocol is set to 0 by bzero, so the protocol is "any"
+	
+	//hints.ai_protocol is set to 0 by bzero, so the protocol is "any" that fits the other criterias
 	getaddrinfo(hostname, service, &hints, &res);
 
 	//iterate through all the addresses resulting from the call to getaddrinfo 
