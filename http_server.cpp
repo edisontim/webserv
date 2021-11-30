@@ -15,6 +15,7 @@
 #include <fstream>
 #include <ctime>
 #include <sstream>
+#include <map>
 
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +23,9 @@
 typedef std::basic_stringstream<char> stringstream;
 
 #include "Internet_socket.hpp"
+
+
+enum DT {CURRENT, LAST_MODIFIED};
 
 //_____________HTTP webserver logic:_____________
 //
@@ -46,6 +50,15 @@ typedef std::basic_stringstream<char> stringstream;
 //11. Shutdown connection and close fd ??
 
 
+int	ft_strlen(const char *str)
+{
+	int i;
+	i = 0;
+	while (str[i])
+		i++;
+	return (i);
+}
+
 
 void *get_in_addr(struct sockaddr *address)
 {
@@ -55,77 +68,119 @@ void *get_in_addr(struct sockaddr *address)
 		return &(((struct sockaddr_in6 *)address)->sin6_addr);
 }
 
-//return content of HTML_FILE as a std::string
-std::string file_content(FILE *file_fd)
+//associates a file extension with the proper content-type of an HTML response
+std::map<std::string, std::string> file_extensions(void)
 {
-	int f_size;
-	char *buff;
-	int result;
-
-	//look for the end-of-file character
-	fseek(file_fd , 0 , SEEK_END);
-
-	//once the cursor is set to the position of the EOF, ftell gives the value of the offset, so we know how many characters are in the file
-	f_size = ftell(file_fd);
-	
-	//go back to the beginning of our file
-	rewind(file_fd);
-	buff = (char *)malloc(sizeof(*buff) * (f_size + 1));
-	buff[sizeof(*buff) * f_size] = 0;
-	if (!buff)
-		return (std::string());
-	result = fread(buff, 1, f_size, file_fd);
-	if (result != f_size)
-	{
-		free(buff);
-		return (std::string());
-	}
-	std::string ret = buff;
-	free(buff);
+	std::map<std::string, std::string> ret;
+	ret.insert(std::make_pair("html", "text/html"));
+	ret.insert(std::make_pair("png", "image/png"));
+	ret.insert(std::make_pair("jpeg", "image/jpeg"));
 	return (ret);
 }
 
-std::string response_header(FILE *file_fd, std::string full_path, std::string http_v, int status)
+//gets file extension from a file path
+std::string file_extension(std::string path)
+{
+	return (path.substr(path.find_last_of(".") + 1));
+}
+
+std::string get_extension(std::map<std::string, std::string> file_extensions, std::string full_path)
+{
+	std::string a = file_extensions.find(full_path.substr(full_path.find_last_of(".") + 1))->second;
+	return (a);
+}
+
+unsigned long file_byte_dimension(std::string full_path)
+{
+	struct stat stat_buf;
+	int rc = stat(full_path.c_str(), &stat_buf);
+	return (rc == 0 ? stat_buf.st_size : 0);
+}
+
+//return content of HTML_FILE as a std::string
+std::string file_content(std::string full_path)
+{
+	std::ifstream t(full_path);
+	stringstream buffer;
+	buffer << t.rdbuf();
+	return (buffer.str());
+}
+
+std::string dt_string(std::string full_path, DT which)
+{
+	char buff[1000];
+	//we need the current time string
+	if (which == CURRENT)
+	{
+		time_t now = time(0);
+		struct tm ltm = *gmtime(&now);
+		strftime(buff, sizeof(buff), "%a, %d %b %Y %T %Z\r\n", &ltm);
+	}
+	else //we need the last modified time string
+	{
+		struct stat a;
+		stat(full_path.c_str(), &a);
+		struct tm last_modified = *gmtime(&a.st_mtime);
+		strftime(buff, sizeof(buff), "%a, %d %b %Y %T %Z\r\n", &last_modified);
+	}
+	return (buff);
+}
+
+std::string response(std::string full_path, std::string http_v, int status)
 {
 	std::string response = http_v;
-	std::string response_buff;
+	std::string body;
+	std::string extension;
+
+	// response status line
 	if (status == 200)
 		response += " 200 OK\r\n";
-		
-	//get current time
-	char buff[1000];
-	time_t now = time(0);
-	struct tm ltm = *gmtime(&now);
-	strftime(buff, sizeof(buff), "Date: %a, %d %b %Y %T %Z\r\n", &ltm);
-	response += buff;
+	
+
+
+	//get current time /!\\ careful, needs to be adapted to WINTER TIME
+	response += "Date: ";
+	response += dt_string(full_path, CURRENT);
+
+
+	//name of the server and OS it's running on
 	response += "Server: Timserver\n\r";
 
-	//check last modified time of file
-	bzero((void*)buff,sizeof(buff));
-	struct stat a;
-	stat(full_path.c_str(), &a);
-	struct tm last_modified = *gmtime(&a.st_mtime);
-	strftime(buff, sizeof(buff), "Last modified: %a, %d %b %Y %T %Z\r\n", &last_modified);
-	
+
+	//get time of last modification of file
+	response += "Last modified: ";
+	response += dt_string(full_path, LAST_MODIFIED);
+
+
+	//Content type of file
+	std::map<std::string, std::string> file_types = file_extensions();
+	extension = get_extension(file_types, full_path);
+	response += "Content-type: ";
+	response += extension;
+	response += "\r\n"; 
 	
 	//get content of HTML file
-	response += buff;
-	response_buff += "Content-type: text/html\r\n"; 
-	response_buff += "Connection: Closed\r\n\r\n";
-	response_buff += file_content(file_fd); //HTML file
+	// response += "Accept-Ranges: bytes\r\n";
+	body = file_content(full_path);
+	if (body == "")
+		return (std::string());
+
 
 	response += "Content-length: ";
-	int total_length;
-	std::string buff_string;
-	buff_string = response_buff.length() + response.length();
-	total_length = buff_string.length() + response_buff.length() + response.length();
+	unsigned int total_length;	
+
 	stringstream ss;
+	total_length = file_byte_dimension(full_path);
 	ss << total_length;
 	response += ss.str();
 	response += "\r\n";
-	response += response_buff;
+
+	//Connection type
+	response += "Connection: Closed\r\n\r\n";
+	response += body;
 	return (response);
 }
+
 
 
 int main()
@@ -218,7 +273,6 @@ int main()
 				{
 					int nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 					
-
 					//this is normally the first word of our request. This means the type : GET, POST, DELETE
 					token[0] = strtok(buff, " \t\n");
 
@@ -236,21 +290,29 @@ int main()
 						//treating HTTP/1.1 request
 						if (!strcmp(token[2], "HTTP/1.1"))
 						{
+							static int a;
+
 							//path of files directory
 							const char path[] = "./website";
 							
 							std::string full_path = path;
-							
+							if (!strcmp(token[1], "/"))
+								full_path += "/index.html";
 							full_path += token[1];
+							
 							//check if file exists, if it doesn't we need to send back the correct http response
 							FILE *file_fd = fopen(full_path.c_str(), "r");
 							if (file_fd)
 							{
-								std::string http_response = response_header(file_fd, full_path, token[2] , 200);
-								std::cout << http_response << std::endl;
-								send(pfds[i].fd, http_response.c_str(), sizeof(http_response.c_str()), 0);
-								// shutdown(pfds[i].fd, SHUT_RDWR);
+								std::string http_response = response(full_path, token[2] , 200);
+								int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
+								//number of bytes send differs from the size of the string, that means we had a problem with send()
+								if (bytes_sent != http_response.length())
+									std::cerr << "Problem with send" << std::endl;
+								shutdown(pfds[i].fd, SHUT_RDWR);
 								close(pfds[i].fd);
+								pfds.erase(pfds.begin() + i);
+								a++;
 							}
 						}
 					}
