@@ -50,6 +50,11 @@ Internet_socket::Internet_socket(const char* hostname, const char *service) : _s
 		socket_fd = LISTEN_FAIL;
 }
 
+Internet_socket::Internet_socket(Internet_socket const &cpy)
+{
+	*this = cpy;
+}
+
 Internet_socket::~Internet_socket()
 {
 	if (socket_fd > -1)
@@ -70,4 +75,16 @@ int Internet_socket::get_socket_fd(void)
 std::string Internet_socket::get_service(void)
 {
 	return (_service);
+}
+
+
+Internet_socket &Internet_socket::operator=(Internet_socket const &cpy)
+{
+	if (this != &cpy)
+	{
+		hints = cpy.hints;
+		socket_fd = cpy.socket_fd;
+		_service = cpy._service;
+	}
+	return (*this);
 }
