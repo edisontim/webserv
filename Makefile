@@ -2,9 +2,13 @@ CXX			= clang++
 
 CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -pedantic
 
-SRCS		= webserv.cpp Internet_socket.cpp
+SRCS_PATH	= srcs
 
-OBJS		= $(SRCS:.cpp=.o)
+SRCS		= webserv.cpp Internet_socket.cpp Server.cpp utils.cpp
+
+SRCS_NAME	= $(addprefix $(SRCS_PATH)/, $(SRCS))
+
+OBJS		= $(SRCS_NAME:.cpp=.o)
 
 NAME		= webserv
 

@@ -8,61 +8,6 @@ enum DT {CURRENT, LAST_MODIFIED};
 class Internet_socket;
 class Server;
 
-// A SERVER HAS :
-// 1. an ip:port
-//		Do we have to do IPv4 and IPv6 ?
-// 2. a server_name
-// 3. directives on how to handle files, requests, error pages, etc.
-// 4. established connections
-// 5. A listening socket
-// Each one has to work in a different manner, but they can have the same ip and port. 
-// Just not the same server_name, if they do, only the first one will be taken into account.
-// SO they can share the same socket file descriptor.
-
-
-
-//_____________HTTP webserver logic:_____________
-//
-//1. parse configuration file if given, if not, have a default path to look into. Base the parsing on the "server" part of Nginx's conf file
-//		see http://nginx.org/en/docs/http/ngx_http_core_module.html for documentation and response statuses on nginx directives
-//		- Chose the host:port of each "server"												listen
-// 		- Setup of the server_name															server_name
-// 		- The first server for a host:port will be the default server for this host:port.
-// 		(it will answer all the requests that don't belong to another server)
-// 		- Limiting the size of the body for the clients										client_max_body_size
-//		- Setup of default error pages														error_page
-//		- Setup of the routes with one or multiple rules (routes won't be using regexes)	
-//				--> see pdf
-//		- CGI execution for certain file extensions
-//2. from this configuration file: 
-//		a) For each specified port and IP, create a bound socket file descriptor on the correct ip and port.
-//		b) For each server name on the same port and IP, have a different array of pfds that store the incoming connections on these "servers"
-//		c) set the working directory to the correct one where files need to be fetched
-//		d) CGI settings
-//		e) 
-//3. listen for incoming connections
-//4. Wait
-//5. When a connection is received, wait for the fd to be ready to read the request
-//6. Wait
-//7. When a fd is ready to read, parse the request
-//8. Check the request's header Host field and decide to which server_name the request should be routed to. 
-//	 If its value does not match any server name, or the request doesn't contain this field at all,
-//	 then route the request to the default server on this port.
-//9. See if the request is correctly formulated, if not send a 400 HTTP response
-//10. Is it a GET, POST, DELETE request ? 
-//		a) GET : If it is correctly formulated see what page was requested : is it an HTML ? or do we have to use Common Gateway Interface
-//			If CGI is needed, then fork the process to execute CGI ?? 
-//		b) POST :
-//		c) DELETE :
-//11. Check to see if fd is ready to write. (POLLOU) Send response with chunked encoding ? If it's HTTP 1.0 then not, otherwise we might need to
-//12. Shutdown connection and close fd ??
-//
-
-//TODO
-// careful for the correction pdf, we need to poll for both read and write at the same time !!
-// 
-// set the sockets to non-blocking
-
 
 int	ft_strlen(const char *str)
 {

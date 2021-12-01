@@ -9,13 +9,20 @@ class Internet_socket;
 
 class Server
 {
-//When parsing, if a new server block has the same ip and port as an existing one (in our vector of servers), then create the Internet_socket by copy of the existing one.
+//When parsing, if a new server block has the same ip and port as an existing one 
+//(in our vector of servers), then create the Internet_socket by copy of the existing one.
 
 	typedef std::vector<struct pollfd>::size_type size_type;
 
 	private:
+
+		//out socket file descriptor class, holds addrinfo(IP), socket_fd and service (port)
 		Internet_socket				sock;
-		std::string					server_name; 
+
+		//server name from configuration file
+		std::string					server_name;
+	
+		//vector that holds all our fds, either our bound socket in index 0 or a remote connection
 		std::vector<struct pollfd>	pfds;
 		
 	public:

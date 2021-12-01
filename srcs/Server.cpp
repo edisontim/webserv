@@ -81,7 +81,7 @@ int Server::poll_fds(void)
 	//fd of our new connection
 	int new_connection;
 
-	int i;
+	size_type i;
 	//poll our vector of fds
 	int poll_count = poll(pfds.data(), pfds.size(), 3000);
 
