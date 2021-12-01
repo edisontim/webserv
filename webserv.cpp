@@ -1,27 +1,7 @@
-#include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <poll.h>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <fstream>
-#include <ctime>
-#include <sstream>
-#include <map>
-
-#include <stdio.h>
-#include <string.h>
-
 #include "Internet_socket.hpp"
 #include "Server.hpp"
+
+#include "webserv.hpp"
 
 typedef std::basic_stringstream<char> stringstream;
 enum DT {CURRENT, LAST_MODIFIED};
@@ -30,6 +10,7 @@ class Server;
 
 // A SERVER HAS :
 // 1. an ip:port
+//		Do we have to do IPv4 and IPv6 ?
 // 2. a server_name
 // 3. directives on how to handle files, requests, error pages, etc.
 // 4. established connections

@@ -1,24 +1,7 @@
 #ifndef INTERNET_SOCKET_HPP
 #define INTERNET_SOCKET_HPP
 
-#include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <poll.h>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <fstream>
-#include <ctime>
-#include <sstream>
-#include <map>
+#include "webserv.hpp"
 
 #define NO_BOUND -1
 #define LISTEN_FAIL -2

@@ -1,6 +1,8 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "webserv.hpp"
+
 #include "Internet_socket.hpp"
 
 class Internet_socket;
@@ -32,9 +34,10 @@ class Server
 //		___________UTILS___________
 
 		void		push_fd(struct pollfd new_fd);
+		void		push_fd(int fd, int events);
 		void		pop_fd(void);
 		size_t		vector_size();
-
+		int			poll_fds(void);
 };
 
 

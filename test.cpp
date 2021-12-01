@@ -19,5 +19,10 @@ int main()
 		std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << test.get_sock().get_service() << ">"<< std::endl;
 	}
 
-	
+	std::cout << "Socket fd : " << test.get_sock().get_socket_fd() << std::endl;
+	while (1)
+	{
+		if (test.poll_fds())
+			std::cerr << "Poll error" << std::endl;
+	}
 }
