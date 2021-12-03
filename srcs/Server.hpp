@@ -48,17 +48,13 @@ class Server
 		
 	protected:
 
-		//this server_name
-		std::string					name;
-
 		//rule sets, determines how the Server or virtual server should treat the request
 		Rules 						rule_set;
 	
 	public:
-		Server(){};
-		Server(Internet_socket const &socket_fd, std::string &server_name);
-		Server(std::string new_server_name, const char* hostname = NULL, const char* service = "80");
-		~Server(){};
+		Server(Internet_socket const &socket_fd);
+		Server(const char* service = "80", const char* hostname = NULL);
+		virtual ~Server(){};
 
 
 //		___________GETTER/SETTERS___________
@@ -66,9 +62,13 @@ class Server
 		Internet_socket				&get_sock(void);
 		std::vector<Virtual_server>	&get_v_servers(void);
 		std::vector<struct pollfd>	&get_pfds(void);
+		Rules						&get_rules(void);
 		void						set_rules(Rules &rules);
 
 //		___________UTILS___________
+
+		//add a new virtual server to our vector
+		void		push_v_server(Virtual_server new_server);
 
 		//add a new connection to our vector of fds
 		void		push_fd(struct pollfd new_fd);
@@ -91,15 +91,14 @@ class Server
 class Virtual_server : public Server
 {
 	//inherited from Server :
-	// std::string		name;
 	// Rules			rule_set;
 
 	private:
 
 	public:
 		Virtual_server(){};
-		Virtual_server(std::string const &serv_name, Rules const &serv_rules);
-		~Virtual_server(){};
+		Virtual_server(Rules const &serv_rules);
+		virtual ~Virtual_server(){};
 };
 
 //fills a vector of Servers up with pointer to new Listening Servers

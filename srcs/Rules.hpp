@@ -25,6 +25,7 @@ class Rules
 	private:
 		std::map<std::string, std::string> directives;
 		//add setup of routes
+		std::pair<std::string, std::string> location;
 
 	public:
 		Rules();

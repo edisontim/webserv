@@ -1,6 +1,6 @@
 #include "Server.hpp"
 
-Server::Server(Internet_socket const &socket_fd, std::string &new_server_name) : name(new_server_name)
+Server::Server(Internet_socket const &socket_fd)
 {
 	struct pollfd new_pfd;
 
@@ -11,7 +11,7 @@ Server::Server(Internet_socket const &socket_fd, std::string &new_server_name) :
 	pfds.push_back(new_pfd);
 }
 
-Server::Server(std::string new_server_name, const char* hostname, const char* service) : name(new_server_name)
+Server::Server(const char* service, const char* hostname)
 {
 	struct pollfd new_pfd;
 
@@ -42,6 +42,15 @@ void Server::set_rules(Rules &new_rules)
 	rule_set = new_rules;
 }
 
+Rules &Server::get_rules(void)
+{
+	return (rule_set);
+}
+
+void Server::push_v_server(Virtual_server new_server)
+{
+	v_servers.push_back(new_server);
+}
 
 void Server::push_fd(struct pollfd new_fd)
 {
@@ -88,7 +97,7 @@ int Server::poll_fds(void)
 
 	size_type i;
 	//poll our vector of fds
-	int poll_count = poll(pfds.data(), pfds.size(), 3000);
+	int poll_count = poll(pfds.data(), pfds.size(), 0);
 
 	if (poll_count == -1)
 	{
