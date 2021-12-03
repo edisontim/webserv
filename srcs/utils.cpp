@@ -1,27 +1,11 @@
-#include <iostream>
-#include <stdlib.h>
-#include <string>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <poll.h>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <fstream>
-#include <ctime>
-#include <sstream>
-#include <map>
-
-#include <stdio.h>
-#include <string.h>
-
 #include "webserv.hpp"
+#include "Server.hpp"
 
+//function launched before leaving the program 
+void cleanup(int)
+{
+	exit(1);
+}
 
 void *get_in_addr(struct sockaddr *address)
 {
@@ -30,8 +14,6 @@ void *get_in_addr(struct sockaddr *address)
 	else
 		return &(((struct sockaddr_in6 *)address)->sin6_addr);
 }
-
-
 
 //associates a file extension with the proper content-type of an HTML response
 std::map<std::string, std::string> file_extensions_map(void)

@@ -20,7 +20,13 @@
 #include <sstream>
 #include <map>
 
+#define RED "\033[0;31m"
+#define NORMAL "\x1b[0m"
+
+class Server;
+
 typedef std::basic_stringstream<char> stringstream;
+
 enum DT {CURRENT, LAST_MODIFIED};
 
 
@@ -31,6 +37,6 @@ unsigned long file_byte_dimension(std::string full_path);
 std::string file_content(std::string full_path);
 std::string dt_string(std::string full_path, DT which);
 std::string response(std::string full_path, std::string http_v, int status);
-
+void cleanup(int);
 
 #endif

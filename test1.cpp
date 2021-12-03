@@ -123,7 +123,6 @@ std::string response(std::string full_path, std::string http_v, int status)
 	response += "\r\n"; 
 	
 	//get content of HTML file
-	// response += "Accept-Ranges: bytes\r\n";
 	body = file_content(full_path);
 	if (body == "")
 		return (std::string());

@@ -1,10 +1,28 @@
 #include "Internet_socket.hpp"
 
-Internet_socket::Internet_socket(const char* hostname, const char *service) : _service(service)
+Internet_socket::Internet_socket()
+{
+	
+}
+
+Internet_socket::Internet_socket(Internet_socket const &cpy)
+{
+	*this = cpy;
+}
+
+Internet_socket::~Internet_socket()
+{
+	if (socket_fd > -1)
+		close(socket_fd);
+}
+
+int Internet_socket::bind_listen(const char* hostname, const char *service)
 {
 	struct addrinfo *res;
 	struct addrinfo *iter;
 	int yes = 1;
+
+	_service = service;
 
 	bzero(&hints, sizeof(hints));
 	
@@ -39,28 +57,23 @@ Internet_socket::Internet_socket(const char* hostname, const char *service) : _s
 		}
 		break;
 	}
+	
+	freeaddrinfo(res);
 
 	// if we got to the end of the linked list, that means no socket_fd was binded
 	if (iter == NULL)
+	{
 		socket_fd = NO_BOUND;
-
-	freeaddrinfo(res);
+		return (NO_BOUND);
+	}
 
 	if (listen(socket_fd, 10) == -1)
+	{
 		socket_fd = LISTEN_FAIL;
+		return (LISTEN_FAIL);
+	}
+	return (0);
 }
-
-Internet_socket::Internet_socket(Internet_socket const &cpy)
-{
-	*this = cpy;
-}
-
-Internet_socket::~Internet_socket()
-{
-	if (socket_fd > -1)
-		close(socket_fd);
-}
-
 
 struct addrinfo Internet_socket::get_hints(void)
 {

@@ -1,23 +1,22 @@
 #include "Server.hpp"
 
-Server::Server(Internet_socket const &socket_fd, std::string new_server_name)
+Server::Server(Internet_socket const &socket_fd, std::string &new_server_name) : name(new_server_name)
 {
 	struct pollfd new_pfd;
 
 	sock = socket_fd;
-	server_name = new_server_name;
-	
+
 	new_pfd.fd = sock.get_socket_fd();
 	new_pfd.events = POLLIN;
 	pfds.push_back(new_pfd);
 }
 
-Server::Server(std::string new_server_name, const char* hostname, const char* service) : sock(Internet_socket(hostname, service))
+Server::Server(std::string new_server_name, const char* hostname, const char* service) : name(new_server_name)
 {
 	struct pollfd new_pfd;
 
-	server_name = new_server_name;
-	
+	sock.bind_listen(hostname, service);
+
 	new_pfd.fd = sock.get_socket_fd();
 	new_pfd.events = POLLIN;
 	pfds.push_back(new_pfd);
@@ -28,15 +27,21 @@ Internet_socket &Server::get_sock(void)
 	return (sock);
 }
 
-std::string &Server::get_server_name(void)
+std::vector<Virtual_server> &Server::get_v_servers(void)
 {
-	return (server_name);
+	return (v_servers);
 }
 
 std::vector<struct pollfd> &Server::get_pfds(void)
 {
 	return (pfds);
 }
+
+void Server::set_rules(Rules &new_rules)
+{
+	rule_set = new_rules;
+}
+
 
 void Server::push_fd(struct pollfd new_fd)
 {
@@ -88,7 +93,7 @@ int Server::poll_fds(void)
 	if (poll_count == -1)
 	{
 		std::cerr << "poll error" << std::endl;
-		return(1);
+		return (0);
 	}
 
 	//go through our array to check if one fd is ready to read
@@ -114,6 +119,7 @@ int Server::poll_fds(void)
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
+				//loop here until nbytes > 0
 				int nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 				//error checking for recv (connection closed or error)
 				if (nbytes <= 0)
@@ -149,22 +155,9 @@ int Server::poll_fds(void)
 					//treating HTTP/1.1 request
 					if (!strcmp(token[2], "HTTP/1.1"))
 					{
-						//path of files directory -- VARIABLE TO CHANGE AFTER PARSING OF CONF FILE FOR THE ROOT DIRECTIVE
-						const char path[] = "./website";
-						
-						std::string full_path = path;
-						if (!strcmp(token[1], "/"))
-							full_path += "/index.html";
-						else
-							full_path += token[1];
-						
-						//check if file exists, if it doesn't we need to send back the correct http response
-						FILE *file_fd = fopen(full_path.c_str(), "r");
-						std::string http_response;
-						if (file_fd)
-							http_response = response(full_path, token[2] , 200);
-						else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
-							http_response = response(std::string(path) + "/404.html", token[2], 404);
+						//Check to which virtual server we should forward the request to
+
+						std::string http_response = treat_request(token[1], token[2], nbytes);
 						if (pfds[i].revents & POLLOUT)
 						{
 							int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
@@ -190,5 +183,33 @@ int Server::poll_fds(void)
 		}
 		i++;
 	}
-	return (0);
+	return (1);
+}
+
+std::string Server::treat_request(const char* requested_page, const char* http_v, int nbytes)
+{
+	(void)nbytes;
+	//Check client_max_body_size to see if the request is not too long
+	
+	// if (nbytes > rule_set.get_client_max_body_size())
+	// return (std::string());
+	
+	//path of files directory -- VARIABLE TO CHANGE AFTER PARSING OF CONF FILE FOR THE ROOT DIRECTIVE
+	const char path[] = "./website";
+
+	std::string full_path = path;
+	if (!strcmp(requested_page, "/"))
+		full_path += "/index.html"; //change to variable in the ruleset of the server
+	else
+		full_path += requested_page;
+
+	//check if file exists, if it doesn't we need to send back the correct http response
+	FILE *file_fd = fopen(full_path.c_str(), "r");
+	std::string http_response;
+	if (file_fd)
+		http_response = response(full_path, http_v , 200);
+	else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
+		http_response = response(std::string(path) + "/404.html", http_v, 404);
+	fclose(file_fd);
+	return (http_response);
 }

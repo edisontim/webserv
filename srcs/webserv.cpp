@@ -1,4 +1,6 @@
+#include "webserv.hpp"
 #include "Server.hpp"
+#include "Rules.hpp"
 
 // A SERVER HAS :
 // 1. an ip:port
@@ -23,7 +25,7 @@
 // 		(it will answer all the requests that don't belong to another server)
 // 		- Limiting the size of the body for the clients										client_max_body_size
 //		- Setup of default error pages														error_page
-//		- Setup of the routes with one or multiple rules (routes won't be using regexes)	
+//		- Setup of the routes with one or multiple rules (routes won't be using regexes)	location
 //				--> see pdf
 //		- CGI execution for certain file extensions
 //2. from this configuration file: 
@@ -46,7 +48,7 @@
 //			If CGI is needed, then fork the process to execute CGI ?? 
 //		b) POST :
 //		c) DELETE :
-//11. Check to see if fd is ready to write. (POLLOU) Send response with chunked encoding ? If it's HTTP 1.0 then not, otherwise we might need to
+//11. Check to see if fd is ready to write. (POLLOUT) Send response with chunked encoding ? If it's HTTP 1.0 then not, otherwise we might need to
 //12. Shutdown connection and close fd ??
 //
 
@@ -54,30 +56,62 @@
 // careful for the correction pdf, we need to poll for both read and write at the same time !!
 // 
 // set the sockets to non-blocking
+// Catch the CTRL-C (SIGINT), 
 
-
-int main()
+int main(int argc, char *argv[])
 {
-	Server test("127.0.0.1");
+	//input buffer
+	std::string buff;
 
-	//get and print own IPv4 address
+	//vector to hold pointers to each of our listening servers
+	std::vector<Server *> servers;
+
+	//avoid quitting program without being able to cleanup the vector and disconnecting the sockets. Really necessary ?
+	signal(SIGQUIT, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal(SIGINT, &cleanup);
+
+	//if we have a path to a configuration file then parse it, otherwise parse the default 
+	//configuration file in conf.d/. If the argument provided wasn't an openable file 
+	// or, if not provided, the default config file wasn't openable, return an error
+	
+
+	if (argc == 2)
 	{
-		char ip_string[255];
-		struct hostent *host;
-
-		//this gets the official name of the host machine running the program
-		gethostname(ip_string, INET6_ADDRSTRLEN);
-
-		// sends back a pointer to hostent struct, by casting the h_addr (which is a define to the first element of the h_addr_list) to an in_addr* and dereferencing that we can get an ip addr in the form of an in_addr
-		// this is a valid method but I think getaddrinfo with hints.ai_flags set to AI_PASSIVE to just use our own IP is easier
-		host = gethostbyname(ip_string);
-		std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << test.get_sock().get_service() << ">"<< std::endl;
+		if (!conf_file(argv[1], servers))
+		{
+			std::cerr << "Config file not found" << std::endl;
+			return (1);
+		}
+	}
+	else
+	{
+		if (!conf_file("conf.d/webserv.conf", servers))
+		{
+			std::cerr << "Default config file not found and none was provided" << std::endl;
+			return (1);
+		}
 	}
 
-	std::cout << "Socket fd : " << test.get_sock().get_socket_fd() << std::endl;
-	while (1)
-	{
-		if (test.poll_fds())
-			std::cerr << "Poll error" << std::endl;
-	}
+	// Server test("my_serv");
+
+	// //get and print own IPv4 address
+	// {
+	// 	char ip_string[255];
+	// 	struct hostent *host;
+
+	// 	//this gets the official name of the host machine running the program
+	// 	gethostname(ip_string, INET6_ADDRSTRLEN);
+
+	// 	// sends back a pointer to hostent struct, by casting the h_addr (which is a define to the first element of the h_addr_list) to an in_addr* and dereferencing that we can get an ip addr in the form of an in_addr
+	// 	// this is a valid method but I think getaddrinfo with hints.ai_flags set to AI_PASSIVE to just use our own IP is easier
+	// 	host = gethostbyname(ip_string);
+	// 	std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << test.get_sock().get_service() << ">"<< std::endl;
+	// }
+
+	// std::cout << "Socket fd : " << test.get_sock().get_socket_fd() << std::endl;
+	// while (1)
+	// {
+	// 	test.poll_fds();
+	// }
 }
