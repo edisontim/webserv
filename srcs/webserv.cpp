@@ -108,10 +108,11 @@ int main(int argc, char *argv[])
 		// sends back a pointer to hostent struct, by casting the h_addr (which is a define to the first element of the h_addr_list) to an in_addr* and dereferencing that we can get an ip addr in the form of an in_addr
 		// this is a valid method but I think getaddrinfo with hints.ai_flags set to AI_PASSIVE to just use our own IP is easier
 		host = gethostbyname(ip_string);
-		std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << servers[i]->get_sock().get_service() << ">"<< std::endl;
-		std::cout << "socket fd : " << servers[i]->get_pfds()[0].fd << std::endl;
+		// std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << servers[i]->get_sock().get_service() << ">"<< std::endl;
+		// std::cout << "socket fd : " << servers[i]->get_pfds()[0].fd << std::endl;
 		i++;
 	}
+
 	while (1)
 	{
 		i = 0;
@@ -121,10 +122,4 @@ int main(int argc, char *argv[])
 			i++;
 		}
 	}
-
-	// std::cout << "Socket fd : " << test.get_sock().get_socket_fd() << std::endl;
-	// while (1)
-	// {
-	// 	test.poll_fds();
-	// }
 }

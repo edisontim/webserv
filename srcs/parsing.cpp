@@ -4,8 +4,7 @@
 
 //TODO ON PARSING
 //================
-//managed to get the beginning of the server block
-//need to parse that block now
+//parse location block
 
 void	display_map(std::map<std::string, std::string> map)
 {
@@ -35,15 +34,15 @@ void treat_location(Rules &new_rules, std::string server_block, int i)
 }
 
 //server block string, index of end of directive, index of the correct 
-std::string new_word(std::string server_block, int i)
+std::string new_word(std::string block, int i)
 {
 	unsigned int word_begin;
-	while (server_block[i] && isspace(server_block[i]))
+	while (block[i] && isspace(block[i]))
 		i++;
 	word_begin = i;
-	while (server_block[i] && !isspace(server_block[i]) && server_block[i] != ';')
+	while (block[i] && !isspace(block[i]) && block[i] != ';')
 		i++;
-	return (server_block.substr(word_begin, i - word_begin));
+	return (block.substr(word_begin, i - word_begin));
 }
 
 Rules parse_server(std::vector<Server *> &servers, std::string server_block)
@@ -89,7 +88,6 @@ Rules parse_server(std::vector<Server *> &servers, std::string server_block)
 		if (i < server_block.length())
 			i++;
 	}
-	display_map(new_rules.get_directives());
 	return (new_rules);
 }
 
@@ -189,7 +187,9 @@ void add_server(std::vector<Server *> &servers, Rules &rules)
 
 	//split the listen directive of our rule to get the port and IP separetely
 	std::pair<std::string, std::string> IP_port = split_listen(rules);
-	//if the IP is empty, this means that we'll listen to the available 
+
+	//if the IP is empty, this means that we'll listen to all the available interfaces on this port. 
+	//An empty IP means listening to 0.0.0.0
 	if (!IP_port.first.compare(""))
 		rules.get_directives()["listen"] = "0.0.0.0" + IP_port.second;
 	while (i < servers.size())
@@ -204,13 +204,10 @@ void add_server(std::vector<Server *> &servers, Rules &rules)
 	//get the IP and the PORT of the server
 	//need to replace all correct values of the IP:port, and server_name here.
 	if (!IP_port.first.compare(""))
-		servers.push_back(new Server(IP_port.second.c_str()));
+		servers.push_back(new Server(IP_port.second.c_str(), "0.0.0.0"));
 	else
 		servers.push_back(new Server(IP_port.second.c_str(), IP_port.first.c_str()));
-	
-	
 	servers[servers.size() - 1]->set_rules(rules);
-
 }
 
 //beginning of parsing
