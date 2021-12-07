@@ -158,8 +158,12 @@ int Server::poll_fds(void)
 				if (!token[0] || !token[1] || !token[2])
 					continue ;
 				
+				// POST request
+				if (!strcmp(token[0], "POST"))
+					std::cout << "Got POST request" << std::endl;
+
 				//we are getting a GET request on server
-				if (!strcmp(token[0], "GET"))
+				else if (!strcmp(token[0], "GET"))
 				{
 					//treating HTTP/1.1 request
 					if (!strcmp(token[2], "HTTP/1.1"))
