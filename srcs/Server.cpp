@@ -128,7 +128,7 @@ int Server::poll_fds(void)
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
-				//loop here until nbytes > 0
+				//loop here while nbytes > 0 ?
 				int nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 				//error checking for recv (connection closed or error)
 				if (nbytes <= 0)
@@ -204,9 +204,9 @@ std::string Server::treat_request(const char* requested_page, const char* http_v
 	// return (std::string());
 	
 	//path of files directory -- VARIABLE TO CHANGE AFTER PARSING OF CONF FILE FOR THE ROOT DIRECTIVE
-	const char path[] = "./website";
+	std::string path = get_rules().get_directives()["root"];
 
-	std::string full_path = path;
+	std::string full_path = path + "/";
 	if (!strcmp(requested_page, "/"))
 		full_path += "/index.html"; //change to variable in the ruleset of the server
 	else
