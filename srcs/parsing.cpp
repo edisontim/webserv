@@ -111,6 +111,7 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 			iter++;
 		}
 	}
+	std::cout << new_location.get_url() << std::endl;
 	display_map(new_location.get_location_rules());
 	new_rules.get_locations().push_back(new_location);
 	return (block_end);
