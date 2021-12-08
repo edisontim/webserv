@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Request.hpp"
 
 Server::Server(Internet_socket const &socket_fd)
 {
@@ -143,6 +144,10 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
+				// copy the buffer so we can send it for POST request handling
+				buff[nbytes] = '\0';
+				Request	request(buff);
+				std::string	received_data = std::string(buff);
 
 				//no error was detected so the data received is valid
 
@@ -160,7 +165,9 @@ int Server::poll_fds(void)
 				
 				// POST request
 				if (!strcmp(token[0], "POST"))
-					std::cout << "Got POST request" << std::endl;
+				{
+					this->treat_post_request(received_data);
+				}
 
 				//we are getting a GET request on server
 				else if (!strcmp(token[0], "GET"))

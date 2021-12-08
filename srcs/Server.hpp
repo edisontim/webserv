@@ -85,6 +85,7 @@ class Server
 
 		//treat the request according to the set of rules of our servers
 		std::string	treat_request(const char* requested_page, const char* http_v, int nbytes);
+		std::string	treat_post_request(std::string buffer);
 };
 
 
