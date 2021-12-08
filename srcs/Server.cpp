@@ -149,7 +149,7 @@ int Server::poll_fds(void)
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
 				token[0] = strtok(buff, " \t\n");
 
-				//this is the requested page of our request !!
+				//this is the requested page of our request
 				token[1] = strtok(NULL, " \t\n");
 
 				//HTTP/1.1 or HTTP/1.0 if the request is valid
@@ -158,15 +158,27 @@ int Server::poll_fds(void)
 				if (!token[0] || !token[1] || !token[2])
 					continue ;
 				
+				// We need to parse the request to get the hostname!!!
+				std::string hostname = "localhost";
+
+				//Check to which virtual server we should forward the request to
+				for (int j = 0; j < this->get_v_servers().size(); j++)
+				{
+					//if we find a virtual server whose server_name directives matches with the Host field of our request,
+					//that's the one that should treat it
+					if (!get_v_servers()[j].get_rules().get_directives()["server_name"].compare(hostname))
+						
+				}
+
 				//we are getting a GET request on server
 				if (!strcmp(token[0], "GET"))
 				{
 					//treating HTTP/1.1 request
 					if (!strcmp(token[2], "HTTP/1.1"))
 					{
-						//Check to which virtual server we should forward the request to
 
 						std::string http_response = treat_request(token[1], token[2], nbytes);
+						
 						if (pfds[i].revents & POLLOUT)
 						{
 							int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);

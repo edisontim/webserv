@@ -99,6 +99,8 @@ class Virtual_server : public Server
 		Virtual_server(){};
 		Virtual_server(Rules const &serv_rules);
 		virtual ~Virtual_server(){};
+
+		Rules	&get_rules(void);
 };
 
 //fills a vector of Servers up with pointer to new Listening Servers
