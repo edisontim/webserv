@@ -67,7 +67,6 @@ std::string new_word(std::string block, int i)
 //function has to return the number of characters we treated from the server block
 int treat_location(Rules &new_rules, std::string server_block, int i)
 {
-	(void)new_rules;
 	unsigned int j = 0;
 	int k;
 	int size;
@@ -82,7 +81,7 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 		j++;
 
 	//if no url was specified, skip that block
-	if (!new_location.get_url().compare(""))
+	if (!new_location.get_prefix().compare(""))
 		return (block_end);
 	while (j < location_string.length())
 	{
@@ -101,7 +100,6 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 		//check if the word matches one of the directives that we allow 
 		//if it does add it to our map of location rules
 		std::string keyword = location_string.substr(k, size);
-
 		//go through our map of location rules, if a key matches the word we found, assign a new value to it
 		std::map<std::string, std::string>::iterator iter = new_location.get_location_rules().begin();
 		while (iter != new_location.get_location_rules().end())
@@ -111,20 +109,17 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 			iter++;
 		}
 	}
-	std::cout << new_location.get_url() << std::endl;
-	display_map(new_location.get_location_rules());
 	new_rules.get_locations().push_back(new_location);
 	return (block_end);
 }
 
 
-Rules parse_server(std::vector<Server *> &servers, std::string server_block)
+Rules parse_server(std::string &server_block)
 {
 	unsigned int i = 0;
 	unsigned int j;
 	unsigned int size = 0;
 	Rules new_rules;
-	(void)servers;
 
 	while (server_block[i])
 	{
@@ -159,6 +154,7 @@ Rules parse_server(std::vector<Server *> &servers, std::string server_block)
 			iter++;
 		}
 	}
+	std::cout << new_rules.get_locations()[0].get_prefix() << std::endl;
 	return (new_rules);
 }
 
@@ -311,7 +307,7 @@ size_t conf_file(std::string path, std::vector<Server *> &servers)
 			return (1);
 		
 		//parse the "server" block and get the rules from it
-		new_rules = parse_server(servers, server_string);
+		new_rules = parse_server(server_string);
 		add_server(servers, new_rules);
 	}
 	return (0);

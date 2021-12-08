@@ -17,8 +17,10 @@ class Rules
 	public:
 		Rules();
 		~Rules(){};
+		Rules(Rules const &cpy);
 
 		Rules &operator=(Rules const &cpy);
+
 
 		//returns our map of general rules
 		std::map<std::string, std::string> &get_directives(void);

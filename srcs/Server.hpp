@@ -27,6 +27,8 @@ class Virtual_server;
 #include "Internet_socket.hpp"
 #include "Rules.hpp"
 
+enum REQ_METHOD{GET, POST, DELETE};
+
 class Server
 {
 	typedef std::vector<struct pollfd>::size_type size_type;
@@ -84,7 +86,11 @@ class Server
 		void		add_v_server(std::string virtual_server);
 
 		//treat the request according to the set of rules of our servers
-		std::string	treat_request(const char* requested_page, const char* http_v, int nbytes);
+		std::string	treat_request(char *token[3], int nbytes);
+		std::pair<bool, Location> match_location(std::string requested_page);
+		void	display_IP(void);
+
+		
 };
 
 
