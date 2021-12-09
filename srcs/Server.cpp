@@ -149,25 +149,24 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
+
 				//no error was detected so the data received is valid
+				
+				//parse the raw data we got into a request object
+				buff[nbytes] = '\0';
+				std::string	full_request(buff);
+				Request	request(full_request);
 
-				//this is normally the first word of our request. This means the type : GET, POST, DELETE
-				token[0] = strtok(buff, " \t\n");
 
-				//this is the requested page of our request /upload/lo.html
-				token[1] = strtok(NULL, " \t\n");
-
-				//HTTP/1.1 or HTTP/1.0 if the request is valid
-				token[2] = strtok(NULL, "\t\n\r");
-
-				if (!token[0] || !token[1] || !token[2])
+				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;
 				
-				if (!strcmp(token[0], "POST"))
+				if (!request.type.compare("POST"))
 					std::cout << "Got POST request" << std::endl;
 				
+
 				// We need to parse the request to get the hostname!!!
-				std::string hostname = "127.0.0.1:8080";
+				std::string hostname = request.headers["Host"];
 
 				std::string http_response = "";
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
@@ -176,8 +175,7 @@ int Server::poll_fds(void)
 					// of our request, that's the one that should treat it
 					if (!get_v_servers()[j].get_rules().get_directives()["server_name"].compare(hostname))
 					{
-						http_response = get_v_servers()[j].treat_request(token, nbytes);
-						std::cout << "in a virtual server" << std::endl;
+						http_response = get_v_servers()[j].treat_request(request, nbytes);
 						break;
 					}
 				}
@@ -185,7 +183,7 @@ int Server::poll_fds(void)
 				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
 				// of the requested page --> look in the locations directives
 				if (http_response.empty())
-					http_response = this->treat_request(token, nbytes);
+					http_response = this->treat_request(request, nbytes);
 				
 				if (pfds[i].revents & POLLOUT)
 				{
@@ -227,7 +225,7 @@ std::pair<bool, Location> Server::match_location(std::string requested_page)
 	return (std::make_pair(false, Location()));
 }
 
-std::string Server::treat_request(char *token[3], int nbytes)
+std::string Server::treat_request(Request &req, int nbytes)
 {
 	std::string full_path;
 	std::string path;
@@ -238,7 +236,8 @@ std::string Server::treat_request(char *token[3], int nbytes)
 	// return (std::string());
 	display_IP();
 	// see if the page requested matches a location in our rules
-	std::pair<bool, Location> found = match_location(token[1]);
+	std::pair<bool, Location> found = match_location(req.uri);
+	std::cout << "req uri : |" << req.uri << "|" << std::endl;
 
 	std::cout << std::boolalpha;
 	std::cout << "Did we match the url searched with our prefix : " << found.first << std::endl;
@@ -252,7 +251,7 @@ std::string Server::treat_request(char *token[3], int nbytes)
 		//our file path inside our server's directories (file that we actually need to open)
 		path = location.get_location_rules()["root"];
 		//requested page url
-		std::string requested_page = std::string(token[1]);
+		std::string requested_page = std::string(req.uri);
 		
 
 		//add to our path a substring of our requested page beginning from the point our 
@@ -263,28 +262,31 @@ std::string Server::treat_request(char *token[3], int nbytes)
 		path += requested_page.substr(location.get_prefix().length());
 		if (requested_page.back() == '/') //if it's a directory
 			path += location.get_location_rules()["index"]; //change to variable in the ruleset of the server
-		else //if it's not a directory try to open the file 
-		{
-			FILE *file_fd = fopen(path.c_str(), "r");
-			if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
-				
-		}
+		// else //if it's not a directory try to open the file 
+		// {
+		// 	FILE *file_fd = fopen(path.c_str(), "r");
+		// 	if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
+		// 	{
+		// 		req.uri += "/";
+		// 		treat_request(req, nbytes);
+		// 	}
+		// }
 	}
 	//we are getting a GET request on server
-	if (!strcmp(token[0], "GET"))
+	if (!req.type.compare("GET"))
 	{
 	//treating HTTP/1.1 request
-		if (!strcmp(token[2], "HTTP/1.1"))
+		if (!req.protocol.compare("HTTP/1.1"))
 		{
 			//check if file exists, if it doesn't we need to send back the correct http response
 			FILE *file_fd = fopen(path.c_str(), "r");
 			std::string http_response;
 			if (file_fd)
-				http_response = get_response(path, token[2] , 200);
+				http_response = get_response(path, req.protocol , 200);
 			else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
 			{
 				// std::cout << "Couldn't find file : " << path << std::endl;
-				http_response = get_response(std::string(path) + "/404.html", token[2], 404);
+				http_response = get_response(std::string(path) + "/404.html", req.protocol, 404);
 			}
 			fclose(file_fd);
 			return (http_response);

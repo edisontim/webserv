@@ -88,7 +88,7 @@ class Server
 
 		//treat the request according to the set of rules of our servers
 		std::string	treat_post_request(Request & request);
-		std::string	treat_request(char *token[3], int nbytes);
+		std::string	treat_request(Request &req, int nbytes);
 		std::pair<bool, Location> match_location(std::string requested_page);
 		void	display_IP(void);
 
