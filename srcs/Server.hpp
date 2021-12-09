@@ -20,6 +20,7 @@
 #include <sstream>
 #include <map>
 #include "webserv.hpp"
+#include "Request.hpp"
 
 class Internet_socket;
 class Virtual_server;
@@ -86,7 +87,8 @@ class Server
 		void		add_v_server(std::string virtual_server);
 
 		//treat the request according to the set of rules of our servers
-		std::string	treat_request(char *token[3], int nbytes);
+		std::string	treat_post_request(Request & request);
+		std::string	treat_request(Request &req, int nbytes);
 		std::pair<bool, Location> match_location(std::string requested_page);
 		void	display_IP(void);
 

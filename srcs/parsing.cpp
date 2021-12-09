@@ -154,7 +154,6 @@ Rules parse_server(std::string &server_block)
 			iter++;
 		}
 	}
-	std::cout << new_rules.get_locations()[0].get_prefix() << std::endl;
 	return (new_rules);
 }
 
