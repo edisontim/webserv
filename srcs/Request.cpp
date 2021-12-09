@@ -7,7 +7,6 @@ Request::Request(char   *buffer)
     std::string         line;
 
     std::getline(f, line);
-    line.spl
     while (std::getline(f, line))
     {
         
