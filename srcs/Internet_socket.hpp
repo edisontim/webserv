@@ -26,6 +26,7 @@
 class Internet_socket
 {
 	private:
+		struct sockaddr_in ip_port;
 		struct addrinfo	hints;
 		int				socket_fd;
 		std::string		_service;
@@ -46,6 +47,7 @@ class Internet_socket
 		struct addrinfo	get_hints(void);
 		int				get_socket_fd(void);
 		std::string		get_service(void);
+		void			display_IP(void);
 };
 
 #endif

@@ -76,7 +76,7 @@ std::string dt_string(std::string full_path, DT which)
 	return (buff);
 }
 
-std::string response(std::string full_path, std::string http_v, int status)
+std::string get_response(std::string full_path, std::string http_v, int status)
 {
 	std::string response = http_v;
 	std::string body;
