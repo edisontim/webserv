@@ -89,10 +89,7 @@ int Server::poll_fds(void)
 	char buff[9999];
 
 	//buffer to hold the ip of our incoming connection
-	// char remote_ip[INET6_ADDRSTRLEN];
-
-	//hold the strings from our request's parsing
-	char *token[3];
+	char remote_ip[INET6_ADDRSTRLEN];
 
 	//struct of an incoming connection
 	struct sockaddr_storage remoteaddr;
@@ -129,7 +126,7 @@ int Server::poll_fds(void)
 				else
 				{
 					push_fd(new_connection, POLLIN | POLLOUT);
-					// std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
+					std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
 				}
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
@@ -156,7 +153,7 @@ int Server::poll_fds(void)
 				buff[nbytes] = '\0';
 				std::string	full_request(buff);
 				Request	request(full_request);
-
+				std::cout << full_request << std::endl;
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;
@@ -173,7 +170,7 @@ int Server::poll_fds(void)
 				{
 					//if we find a virtual server whose server_name directives matches with the Host field
 					// of our request, that's the one that should treat it
-					if (!get_v_servers()[j].get_rules().get_directives()["server_name"].compare(hostname))
+					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
 					{
 						http_response = get_v_servers()[j].treat_request(request, nbytes);
 						break;
@@ -187,6 +184,7 @@ int Server::poll_fds(void)
 				
 				if (pfds[i].revents & POLLOUT)
 				{
+					std::cout << http_response << std::endl;
 					int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
 					//number of bytes send differs from the size of the string, that means we had a problem with send()
 					if (bytes_sent == -1 || bytes_sent != static_cast<int>(http_response.length()))
@@ -200,9 +198,9 @@ int Server::poll_fds(void)
 						pfds.erase(pfds.begin() + i);
 					}
 					//not sure these are necessary if recv and send worked
-					// shutdown(pfds[i].fd, SHUT_RDWR);
-					// close(pfds[i].fd);
-					// pfds.erase(pfds.begin() + i);
+					shutdown(pfds[i].fd, SHUT_RDWR);
+					close(pfds[i].fd);
+					pfds.erase(pfds.begin() + i);
 				}
 
 			}
@@ -214,33 +212,37 @@ int Server::poll_fds(void)
 
 std::pair<bool, Location> Server::match_location(std::string requested_page)
 {
-	for (unsigned int i = 0; i < get_rules().get_locations().size(); i++)
+	for (unsigned int i = 0; i < get_rules().locations.size(); i++)
 	{
-		std::string location_url = this->get_rules().get_locations()[i].get_prefix();
+		std::string location_url = this->get_rules().locations[i].prefix;
 		//looks for a location block for which the requested page url has a prefix that matches with the 
 		//location prefix
 		if (!requested_page.rfind(location_url, 0))
-			return (std::make_pair(true, this->get_rules().get_locations()[i]));
+			return (std::make_pair(true, this->get_rules().locations[i]));
 	}
 	return (std::make_pair(false, Location()));
 }
 
 std::string Server::treat_request(Request &req, int nbytes)
 {
+	(void)nbytes;
+	// (void)req;
+	// std::string response = "HTTP/1.0 301 Moved permanently\r\n";
+	// response += "Location: 10.3.102.2:8080/upload/404.html\r\n";
+	// std::cout << response << std::endl;
+	// return (response);
+
+
 	std::string full_path;
 	std::string path;
-	(void)nbytes;
 	//Check client_max_body_size to see if the request is not too long
 	
 	// if (nbytes > rule_set.get_client_max_body_size())
 	// return (std::string());
-	display_IP();
+
 	// see if the page requested matches a location in our rules
 	std::pair<bool, Location> found = match_location(req.uri);
-	std::cout << "req uri : |" << req.uri << "|" << std::endl;
 
-	std::cout << std::boolalpha;
-	std::cout << "Did we match the url searched with our prefix : " << found.first << std::endl;
 	//page requested is a page included in a location block
 
 	if (found.first)
@@ -249,28 +251,32 @@ std::string Server::treat_request(Request &req, int nbytes)
 		Location location = found.second;
 
 		//our file path inside our server's directories (file that we actually need to open)
-		path = location.get_location_rules()["root"];
-		//requested page url
-		std::string requested_page = std::string(req.uri);
+		path = location.location_map["root"];
 		
 
 		//add to our path a substring of our requested page beginning from the point our 
 		//location prefix ends. 
 		// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 		// then we need to look were the url continues, and add that to the back of our root
+		path += req.uri.substr(location.prefix.length());
 
-		path += requested_page.substr(location.get_prefix().length());
-		if (requested_page.back() == '/') //if it's a directory
-			path += location.get_location_rules()["index"]; //change to variable in the ruleset of the server
-		// else //if it's not a directory try to open the file 
-		// {
-		// 	FILE *file_fd = fopen(path.c_str(), "r");
-		// 	if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
-		// 	{
-		// 		req.uri += "/";
-		// 		treat_request(req, nbytes);
-		// 	}
-		// }
+		if (req.uri.back() == '/') //if it's a directory
+			path += location.location_map["index"]; 
+		else
+		{
+			struct stat s;
+			if (!stat(path.c_str(), &s))
+			{
+				if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
+				{
+					return (get_response(req.uri + "/", req.protocol, 301));
+				}
+			}
+		}
+	}
+	else
+	{
+
 	}
 	//we are getting a GET request on server
 	if (!req.type.compare("GET"))
@@ -285,8 +291,8 @@ std::string Server::treat_request(Request &req, int nbytes)
 				http_response = get_response(path, req.protocol , 200);
 			else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
 			{
-				// std::cout << "Couldn't find file : " << path << std::endl;
-				http_response = get_response(std::string(path) + "/404.html", req.protocol, 404);
+				std::cout << "Couldn't find file : " << path << std::endl;
+				http_response = get_response(path + "/404.html", req.protocol, 404);
 			}
 			fclose(file_fd);
 			return (http_response);

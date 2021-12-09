@@ -81,7 +81,7 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 		j++;
 
 	//if no url was specified, skip that block
-	if (!new_location.get_prefix().compare(""))
+	if (!new_location.prefix.compare(""))
 		return (block_end);
 	while (j < location_string.length())
 	{
@@ -101,15 +101,15 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 		//if it does add it to our map of location rules
 		std::string keyword = location_string.substr(k, size);
 		//go through our map of location rules, if a key matches the word we found, assign a new value to it
-		std::map<std::string, std::string>::iterator iter = new_location.get_location_rules().begin();
-		while (iter != new_location.get_location_rules().end())
+		std::map<std::string, std::string>::iterator iter = new_location.location_map.begin();
+		while (iter != new_location.location_map.end())
 		{
 			if (!keyword.compare(iter->first))
 				iter->second = new_word(location_string, j);
 			iter++;
 		}
 	}
-	new_rules.get_locations().push_back(new_location);
+	new_rules.locations.push_back(new_location);
 	return (block_end);
 }
 
@@ -146,8 +146,8 @@ Rules parse_server(std::string &server_block)
 			continue ;
 		}
 		//go through our map of general server rules, if a key matches the word we found, assign a new value to it
-		std::map<std::string, std::string>::iterator iter = new_rules.get_directives().begin();
-		while (iter != new_rules.get_directives().end())
+		std::map<std::string, std::string>::iterator iter = new_rules.directives.begin();
+		while (iter != new_rules.directives.end())
 		{
 			if (!directives_keyword.compare(iter->first))
 				iter->second = new_word(server_block, i);
@@ -237,13 +237,13 @@ bool	only_digits(std::string str)
 
 std::pair<std::string, std::string> split_listen(Rules &rules)
 {
-	if (only_digits(rules.get_directives()["listen"]))
-		return (std::make_pair("", rules.get_directives()["listen"]));
+	if (only_digits(rules.directives["listen"]))
+		return (std::make_pair("", rules.directives["listen"]));
 	else
 	{
 		//position of delimiter
-		unsigned int pos = rules.get_directives()["listen"].find(":");
-		return (std::make_pair(rules.get_directives()["listen"].substr(0, pos), rules.get_directives()["listen"].substr(pos + 1, rules.get_directives()["listen"].length())));
+		unsigned int pos = rules.directives["listen"].find(":");
+		return (std::make_pair(rules.directives["listen"].substr(0, pos), rules.directives["listen"].substr(pos + 1, rules.directives["listen"].length())));
 	}
 }
 
@@ -258,10 +258,10 @@ void add_server(std::vector<Server *> &servers, Rules &rules)
 	//if the IP is empty, this means that we'll listen to all the available interfaces on this port. 
 	//An empty IP means listening to 0.0.0.0
 	if (!IP_port.first.compare(""))
-		rules.get_directives()["listen"] = "0.0.0.0" + IP_port.second;
+		rules.directives["listen"] = "0.0.0.0" + IP_port.second;
 	while (i < servers.size())
 	{
-		if (!servers[i]->get_rules().get_directives()["listen"].compare(rules.get_directives()["listen"]))
+		if (!servers[i]->get_rules().directives["listen"].compare(rules.directives["listen"]))
 		{
 			servers[i]->push_v_server(Virtual_server(rules));
 			return ;
