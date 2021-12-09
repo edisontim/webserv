@@ -239,7 +239,7 @@ std::string Server::treat_request(char *token[3], int nbytes)
 	// see if the page requested matches a location in our rules
 	std::pair<bool, Location> found = match_location(token[1]);
 
-	std::cout << std::boolalpha << std::endl;
+	std::cout << std::boolalpha;
 	std::cout << "Did we match the url searched with our prefix : " << found.first << std::endl;
 	//page requested is a page included in a location block
 
@@ -260,8 +260,14 @@ std::string Server::treat_request(char *token[3], int nbytes)
 		// then we need to look were the url continues, and add that to the back of our root
 
 		path += requested_page.substr(location.get_prefix().length());
-		if (requested_page.back() == '/')
+		if (requested_page.back() == '/') //if it's a directory
 			path += location.get_location_rules()["index"]; //change to variable in the ruleset of the server
+		else //if it's not a directory try to open the file 
+		{
+			FILE *file_fd = fopen(path.c_str(), "r");
+			if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
+				
+		}
 	}
 	//we are getting a GET request on server
 	if (!strcmp(token[0], "GET"))
