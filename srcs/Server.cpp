@@ -146,9 +146,8 @@ int Server::poll_fds(void)
 				}
 				// copy the buffer so we can send it for POST request handling
 				buff[nbytes] = '\0';
-				Request	request(buff);
-				std::string	received_data = std::string(buff);
-
+				std::string	full_request = std::string(buff);
+				Request	request(full_request);
 				//no error was detected so the data received is valid
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
@@ -164,9 +163,9 @@ int Server::poll_fds(void)
 					continue ;
 				
 				// POST request
-				if (!strcmp(token[0], "POST"))
+				if (request.type == "POST")
 				{
-					this->treat_post_request(received_data);
+					this->treat_post_request(request);
 				}
 
 				//we are getting a GET request on server

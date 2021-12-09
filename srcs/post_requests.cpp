@@ -1,16 +1,14 @@
 #include "Server.hpp"
 
-std::string Server::treat_post_request(std::string buffer)
+std::string Server::treat_post_request(Request & request)
 {
-    (void)buffer;
-    // std::cout << "-----BUFFER IS-----" << std::endl << buffer << std::endl;
-
-    //  parse the post request, we need:
-    //      - action attribute
-    //      - HTTP/1.1
+    //  post request, we need:
+    //      - uri
+    //      - protocol
     //      - Host
     //      - Content-Length
     //      - Content-type
     //      - Data
-    return ("ok");
+    request.print();
+    return ("200");
 }
