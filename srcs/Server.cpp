@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Request.hpp"
 
 Server::Server(Internet_socket const &socket_fd)
 {
@@ -143,7 +144,10 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
-
+				// copy the buffer so we can send it for POST request handling
+				buff[nbytes] = '\0';
+				std::string	full_request = std::string(buff);
+				Request	request(full_request);
 				//no error was detected so the data received is valid
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
@@ -158,8 +162,14 @@ int Server::poll_fds(void)
 				if (!token[0] || !token[1] || !token[2])
 					continue ;
 				
+				// POST request
+				if (request.type == "POST")
+				{
+					this->treat_post_request(request);
+				}
+
 				//we are getting a GET request on server
-				if (!strcmp(token[0], "GET"))
+				else if (!strcmp(token[0], "GET"))
 				{
 					//treating HTTP/1.1 request
 					if (!strcmp(token[2], "HTTP/1.1"))
