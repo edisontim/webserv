@@ -146,6 +146,16 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
+<<<<<<< Updated upstream
+=======
+				//no error was detected so the data received is valid
+				buff[nbytes] = '\0';
+				std::string	full_request(buff);
+				Request	request(full_request);
+
+				//this is normally the first word of our request. This means the type : GET, POST, DELETE
+				token[0] = strtok(buff, " \t\n");
+>>>>>>> Stashed changes
 
 				//no error was detected so the data received is valid
 				
