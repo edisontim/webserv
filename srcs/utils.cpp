@@ -149,7 +149,7 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 	//Connection type
 	response += "Connection: Closed\r\n\r\n";
 	response += body;
-	std::cout << response << std::endl;
+	// std::cout << response << std::endl;
 
 	return (response);
 }

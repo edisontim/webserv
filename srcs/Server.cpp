@@ -146,10 +146,6 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
-				//no error was detected so the data received is valid
-				buff[nbytes] = '\0';
-				std::string	full_request(buff);
-				Request	request(full_request);
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
 				//no error was detected so the data received is valid
@@ -158,7 +154,6 @@ int Server::poll_fds(void)
 				buff[nbytes] = '\0';
 				std::string	full_request(buff);
 				Request	request(full_request);
-				std::cout << full_request << std::endl;
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;
@@ -288,6 +283,10 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		error_page = this->rule_set.directives["error_page"];
 	}
 	//we are getting a GET request on server
+	if (req.type == "POST")
+	{
+		this->treat_post_request(req);
+	}
 	if (!req.type.compare("GET"))
 	{
 	//treating HTTP/1.1 request
