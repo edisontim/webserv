@@ -149,6 +149,16 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
+<<<<<<< Updated upstream
+=======
+				//no error was detected so the data received is valid
+				buff[nbytes] = '\0';
+				std::string	full_request(buff);
+				Request	request(full_request);
+
+				//this is normally the first word of our request. This means the type : GET, POST, DELETE
+				token[0] = strtok(buff, " \t\n");
+>>>>>>> Stashed changes
 
 				//no error was detected so the data received is valid
 				
@@ -262,6 +272,7 @@ std::string Server::treat_request(Request &req, int nbytes)
 		path += requested_page.substr(location.get_prefix().length());
 		if (requested_page.back() == '/') //if it's a directory
 			path += location.get_location_rules()["index"]; //change to variable in the ruleset of the server
+<<<<<<< Updated upstream
 		// else //if it's not a directory try to open the file 
 		// {
 		// 	FILE *file_fd = fopen(path.c_str(), "r");
@@ -271,6 +282,14 @@ std::string Server::treat_request(Request &req, int nbytes)
 		// 		treat_request(req, nbytes);
 		// 	}
 		// }
+=======
+		else //if it's not a directory try to open the file 
+		{
+			// FILE *file_fd = fopen(path.c_str(), "r");
+			// if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
+				
+		}
+>>>>>>> Stashed changes
 	}
 	//we are getting a GET request on server
 	if (!req.type.compare("GET"))
