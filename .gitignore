@@ -3,3 +3,4 @@
 *.dSYM
 webserv
 *.o
+srcs/*.o

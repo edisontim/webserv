@@ -1,9 +1,6 @@
 #include "Server.hpp"
-
-std::string Server::treat_post_request(Request & request, std::string path, std::string error_page)
-{
-    (void)path;
-    (void)error_page;
+#include <unistd.h>
+#include <sys/stat.h>
     //  post request, we need:
     //      - uri
     //      - protocol
@@ -11,6 +8,64 @@ std::string Server::treat_post_request(Request & request, std::string path, std:
     //      - Content-Length
     //      - Content-type
     //      - Data
-    request.print();
-    return ("200");
+    // request.print();
+
+bool    file_is_php(std::string & uri)
+{
+    int last_dot_position;
+    std::string extension;
+
+    last_dot_position = uri.find_last_of(".");
+    if (last_dot_position <= 0)
+        return (false);
+
+    extension = uri.substr(last_dot_position + 1);
+    if (extension == "php")
+        return (true);
+    return (false);
 }
+
+bool    file_exists(std::string & path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
+}
+
+
+std::string Server::treat_post_request(Request & request, std::string path, Location location)
+{
+    std::string http_response;
+
+    // path: ./website/postform.html
+    // error_page: 404.html
+    std::cout << "path: " << path << std::endl;
+    std::cout << "error_page: " << error_page << std::endl;
+    int i = 0;
+    while (i < get_rules().locations.size())
+    {
+        if ()
+            std::cout << this->get_rules().locations
+
+    }
+
+    // check if page requested (path variable) exists (if not, serve error page)
+    if (!file_exists(path))
+    {
+        std::cout << "Couldn't find file : " << path << std::endl;
+        http_response = get_response(this-> + error_page, request.protocol, 404);
+        std::cout << "response: " << http_response << std::endl;
+    }
+    else
+    {
+        if (file_is_php(request.uri))
+        {
+
+        }
+        else
+        {
+
+        }
+    }
+    return (http_response);
+}
+

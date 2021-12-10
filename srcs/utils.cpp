@@ -99,7 +99,7 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 	
 	if (status == 404)
 		response += " " + itoa(status) + " Page not found\r\n";
-	
+
 	if (status == 301)
 	{
 		response += " " + itoa(status) + " Moved permanently\r\n";
