@@ -146,17 +146,12 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
-<<<<<<< Updated upstream
-=======
 				//no error was detected so the data received is valid
 				buff[nbytes] = '\0';
 				std::string	full_request(buff);
 				Request	request(full_request);
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
-				token[0] = strtok(buff, " \t\n");
->>>>>>> Stashed changes
-
 				//no error was detected so the data received is valid
 				
 				//parse the raw data we got into a request object
@@ -247,6 +242,8 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 
 	std::string full_path;
 	std::string path;
+
+	std::string error_page;
 	//Check client_max_body_size to see if the request is not too long
 	
 	// if (nbytes > rule_set.get_client_max_body_size())
@@ -265,7 +262,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		//our file path inside our server's directories (file that we actually need to open)
 		path = location.location_map["root"];
 		
-
+		error_page = location.location_map["error_page"];
 		//add to our path a substring of our requested page beginning from the point our 
 		//location prefix ends. 
 		// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
@@ -288,7 +285,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	}
 	else
 	{
-		
+		error_page = this->rule_set.directives["error_page"];
 	}
 	//we are getting a GET request on server
 	if (!req.type.compare("GET"))
@@ -304,7 +301,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 			else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
 			{
 				std::cout << "Couldn't find file : " << path << std::endl;
-				http_response = get_response(path + "/" + , req.protocol, 404);
+				http_response = get_response(path + "/" + error_page, req.protocol, 404);
 			}
 			fclose(file_fd);
 			return (std::make_pair(true,http_response));
