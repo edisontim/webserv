@@ -9,12 +9,14 @@
 class Rules
 {
 	private:
-		//general set of rules
-		std::map<std::string, std::string> directives;
-		//vector of location directives
-		std::vector<Location> locations;
 
 	public:
+		//general set of rules
+		std::map<std::string, std::string> directives;
+		
+		//vector of location directives
+		std::vector<Location> locations;
+		
 		Rules();
 		~Rules(){};
 		Rules(Rules const &cpy);
