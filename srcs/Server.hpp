@@ -87,11 +87,12 @@ class Server
 		void		add_v_server(std::string virtual_server);
 
 		//treat the request according to the set of rules of our servers
-		std::string	treat_post_request(Request & request);
+		std::string	treat_post_request(Request & request, std::string path, std::string error_page);
 		std::pair<bool, std::string>	treat_request(Request &req, int nbytes);
 		std::pair<bool, Location> match_location(std::string requested_page);
 		void	display_IP(void);
 		int	close_connection(int fd_index);
+		std::pair<bool, std::string> treat_get_request(Request &req, std::string path, std::string error_page);
 
 
 		
