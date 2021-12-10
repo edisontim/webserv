@@ -89,7 +89,10 @@ int Server::poll_fds(void)
 	char buff[9999];
 
 	//buffer to hold the ip of our incoming connection
-	char remote_ip[INET6_ADDRSTRLEN];
+	// char remote_ip[INET6_ADDRSTRLEN];
+
+	//hold the strings from our request's parsing
+	char *token[3];
 
 	//struct of an incoming connection
 	struct sockaddr_storage remoteaddr;
@@ -126,7 +129,7 @@ int Server::poll_fds(void)
 				else
 				{
 					push_fd(new_connection, POLLIN | POLLOUT);
-					std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
+					// std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
 				}
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
@@ -152,13 +155,15 @@ int Server::poll_fds(void)
 				Request	request(full_request);
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
+				token[0] = strtok(buff, " \t\n");
+
 				//no error was detected so the data received is valid
 				
 				//parse the raw data we got into a request object
 				buff[nbytes] = '\0';
 				std::string	full_request(buff);
 				Request	request(full_request);
-				std::cout << full_request << std::endl;
+
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;
@@ -169,16 +174,15 @@ int Server::poll_fds(void)
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
-				std::pair<bool, std::string> request_treated;
+
 				std::string http_response = "";
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
 				{
 					//if we find a virtual server whose server_name directives matches with the Host field
 					// of our request, that's the one that should treat it
-					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
+					if (!get_v_servers()[j].get_rules().get_directives()["server_name"].compare(hostname))
 					{
-						request_treated = get_v_servers()[j].treat_request(request, nbytes);
-						http_response = request_treated.second;
+						http_response = get_v_servers()[j].treat_request(request, nbytes);
 						break;
 					}
 				}
@@ -186,10 +190,8 @@ int Server::poll_fds(void)
 				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
 				// of the requested page --> look in the locations directives
 				if (http_response.empty())
-				{
-					request_treated = this->treat_request(request, nbytes);
-					http_response = request_treated.second;
-				}
+					http_response = this->treat_request(request, nbytes);
+				
 				if (pfds[i].revents & POLLOUT)
 				{
 					int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
@@ -200,11 +202,14 @@ int Server::poll_fds(void)
 							std::cerr << "error on send" << std::endl;
 						else
 							std::cerr << "send didn't write all the package" << std::endl;
-						close_connection(i);
+						shutdown(pfds[i].fd, SHUT_RDWR);
+						close(pfds[i].fd);
+						pfds.erase(pfds.begin() + i);
 					}
 					//not sure these are necessary if recv and send worked
-					if (!request_treated.first)
-						close_connection(i);
+					// shutdown(pfds[i].fd, SHUT_RDWR);
+					// close(pfds[i].fd);
+					// pfds.erase(pfds.begin() + i);
 				}
 
 			}
@@ -214,32 +219,21 @@ int Server::poll_fds(void)
 	return (1);
 }
 
-int	Server::close_connection(int fd_index)
-{
-	shutdown(pfds[fd_index].fd, SHUT_RDWR);
-	close(pfds[fd_index].fd);
-	pfds.erase(pfds.begin() + fd_index);
-	return (1);
-}
-
 std::pair<bool, Location> Server::match_location(std::string requested_page)
 {
-	for (unsigned int i = 0; i < get_rules().locations.size(); i++)
+	for (unsigned int i = 0; i < get_rules().get_locations().size(); i++)
 	{
-		std::string location_url = this->get_rules().locations[i].prefix;
+		std::string location_url = this->get_rules().get_locations()[i].get_prefix();
 		//looks for a location block for which the requested page url has a prefix that matches with the 
 		//location prefix
 		if (!requested_page.rfind(location_url, 0))
-			return (std::make_pair(true, this->get_rules().locations[i]));
+			return (std::make_pair(true, this->get_rules().get_locations()[i]));
 	}
 	return (std::make_pair(false, Location()));
 }
 
-//true if response is 200 or 404, false if response is a redirect 301
-std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
+std::string Server::treat_request(Request &req, int nbytes)
 {
-	(void)nbytes;
-
 	std::string full_path;
 	std::string path;
 
@@ -248,10 +242,13 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	
 	// if (nbytes > rule_set.get_client_max_body_size())
 	// return (std::string());
-
+	display_IP();
 	// see if the page requested matches a location in our rules
 	std::pair<bool, Location> found = match_location(req.uri);
+	std::cout << "req uri : |" << req.uri << "|" << std::endl;
 
+	std::cout << std::boolalpha;
+	std::cout << "Did we match the url searched with our prefix : " << found.first << std::endl;
 	//page requested is a page included in a location block
 
 	if (found.first)
@@ -260,27 +257,24 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		Location location = found.second;
 
 		//our file path inside our server's directories (file that we actually need to open)
-		path = location.location_map["root"];
+		path = location.get_location_rules()["root"];
+		//requested page url
+		std::string requested_page = std::string(req.uri);
 		
 		error_page = location.location_map["error_page"];
 		//add to our path a substring of our requested page beginning from the point our 
 		//location prefix ends. 
 		// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 		// then we need to look were the url continues, and add that to the back of our root
-		path += req.uri.substr(location.prefix.length());
 
-		if (req.uri.back() == '/') //if it's a directory
-			path += location.location_map["index"]; 
-		else
+		path += requested_page.substr(location.get_prefix().length());
+		if (requested_page.back() == '/') //if it's a directory
+			path += location.get_location_rules()["index"]; //change to variable in the ruleset of the server
+		else //if it's not a directory try to open the file 
 		{
-			struct stat s;
-			if (!stat(path.c_str(), &s))
-			{
-				if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
-				{
-					return (std::make_pair(false, get_response(req.uri + "/", req.protocol, 301)));
-				}
-			}
+			// FILE *file_fd = fopen(path.c_str(), "r");
+			// if (!file_fd) //if the file doesn't open, rerun the function by trying the directory
+				
 		}
 	}
 	else
@@ -304,9 +298,9 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 				http_response = get_response(path + "/" + error_page, req.protocol, 404);
 			}
 			fclose(file_fd);
-			return (std::make_pair(true,http_response));
+			return (http_response);
 		}
 	}
 	//remove, just present for testing
-	return (std::make_pair(false, std::string()));
+	return (std::string());
 }
