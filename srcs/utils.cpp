@@ -1,7 +1,18 @@
 #include "webserv.hpp"
 #include "Server.hpp"
+#include <sstream>
 
 //function launched before leaving the program 
+
+
+template <typename T>
+std::string itoa( T Number )
+{
+	std::ostringstream ss;
+	ss << Number;
+	return ss.str();
+}
+
 void cleanup(int)
 {
 	exit(1);
@@ -76,7 +87,7 @@ std::string dt_string(std::string full_path, DT which)
 	return (buff);
 }
 
-std::string response(std::string full_path, std::string http_v, int status)
+std::string get_response(std::string full_path, std::string http_v, int status)
 {
 	std::string response = http_v;
 	std::string body;
@@ -84,10 +95,19 @@ std::string response(std::string full_path, std::string http_v, int status)
 
 	// response status line
 	if (status == 200)
-		response += " 200 OK\r\n";
+		response += " " + itoa(status) + " OK\r\n";
 	
 	if (status == 404)
-		response += " 404 Page not found\r\n";
+		response += " " + itoa(status) + " Page not found\r\n";
+	
+	if (status == 301)
+	{
+		response += " " + itoa(status) + " Moved permanently\r\n";
+		//full_path is actually the full url requested 
+		response += "Location: " + full_path + "\r\n\r\n";
+		std::cout << response << std::endl;
+		return (response);
+	}
 
 	//get current time /!\\ careful, needs to be adapted to WINTER TIME
 	response += "Date: ";
@@ -129,6 +149,8 @@ std::string response(std::string full_path, std::string http_v, int status)
 	//Connection type
 	response += "Connection: Closed\r\n\r\n";
 	response += body;
+	std::cout << response << std::endl;
+
 	return (response);
 }
 

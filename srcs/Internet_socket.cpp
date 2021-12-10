@@ -16,8 +16,15 @@ Internet_socket::~Internet_socket()
 		close(socket_fd);
 }
 
+void Internet_socket::display_IP()
+{
+	void *addr;
+	addr = &(ip_port.sin_addr);
+	char addr_str[INET6_ADDRSTRLEN];
+	inet_ntop(AF_INET,  addr, addr_str, sizeof(addr_str));
+	std::cout << "IP : " << addr_str << std::endl;
+}
 
-//Right now, it only works for "0.0.0.0"
 int Internet_socket::bind_listen(const char* hostname, const char *service)
 {
 	struct addrinfo *res;
@@ -85,6 +92,8 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	}
 	else
 		std::cout << "No socket was connected" << std::endl;
+	
+	ip_port = *(struct sockaddr_in *)iter->ai_addr;
 	freeaddrinfo(res);
 
 	// if we got to the end of the linked list, that means no socket_fd was binded
@@ -93,6 +102,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 		socket_fd = NO_BOUND;
 		return (NO_BOUND);
 	}
+
 
 	if (listen(socket_fd, 10) == -1)
 	{

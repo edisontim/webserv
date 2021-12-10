@@ -36,7 +36,7 @@ std::string get_extension(std::map<std::string, std::string> file_extensions, st
 unsigned long file_byte_dimension(std::string full_path);
 std::string file_content(std::string full_path);
 std::string dt_string(std::string full_path, DT which);
-std::string response(std::string full_path, std::string http_v, int status);
+std::string get_response(std::string full_path, std::string http_v, int status);
 void cleanup(int);
 
 #endif

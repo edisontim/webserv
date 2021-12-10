@@ -1,38 +1,32 @@
 #ifndef RULES_HPP
 #define RULES_HPP
 
-#include <iostream>
-#include <stdlib.h>
 #include <string>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <poll.h>
 #include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <fstream>
-#include <ctime>
-#include <sstream>
 #include <map>
+#include "Location.hpp"
 
 class Rules
 {
 	private:
-		std::map<std::string, std::string> directives;
-		//add setup of routes
-		std::pair<std::string, std::string> location;
 
 	public:
+		//general set of rules
+		std::map<std::string, std::string> directives;
+		
+		//vector of location directives
+		std::vector<Location> locations;
+		
 		Rules();
 		~Rules(){};
+		Rules(Rules const &cpy);
 
 		Rules &operator=(Rules const &cpy);
+
+
+		//returns our map of general rules
 		std::map<std::string, std::string> &get_directives(void);
+		std::vector<Location> &get_locations(void);
 };
 
 #endif
