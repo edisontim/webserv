@@ -164,7 +164,7 @@ int Server::poll_fds(void)
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
-
+				std::pair<bool, std::string> request_treated;
 				std::string http_response = "";
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
 				{
@@ -172,7 +172,8 @@ int Server::poll_fds(void)
 					// of our request, that's the one that should treat it
 					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
 					{
-						http_response = get_v_servers()[j].treat_request(request, nbytes);
+						request_treated = get_v_servers()[j].treat_request(request, nbytes);
+						http_response = request_treated.second;
 						break;
 					}
 				}
@@ -180,11 +181,12 @@ int Server::poll_fds(void)
 				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
 				// of the requested page --> look in the locations directives
 				if (http_response.empty())
-					http_response = this->treat_request(request, nbytes);
-				
+				{
+					request_treated = this->treat_request(request, nbytes);
+					http_response = request_treated.second;
+				}
 				if (pfds[i].revents & POLLOUT)
 				{
-					std::cout << http_response << std::endl;
 					int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
 					//number of bytes send differs from the size of the string, that means we had a problem with send()
 					if (bytes_sent == -1 || bytes_sent != static_cast<int>(http_response.length()))
@@ -193,20 +195,25 @@ int Server::poll_fds(void)
 							std::cerr << "error on send" << std::endl;
 						else
 							std::cerr << "send didn't write all the package" << std::endl;
-						shutdown(pfds[i].fd, SHUT_RDWR);
-						close(pfds[i].fd);
-						pfds.erase(pfds.begin() + i);
+						close_connection(i);
 					}
 					//not sure these are necessary if recv and send worked
-					shutdown(pfds[i].fd, SHUT_RDWR);
-					close(pfds[i].fd);
-					pfds.erase(pfds.begin() + i);
+					if (!request_treated.first)
+						close_connection(i);
 				}
 
 			}
 		}
 		i++;
 	}
+	return (1);
+}
+
+int	Server::close_connection(int fd_index)
+{
+	shutdown(pfds[fd_index].fd, SHUT_RDWR);
+	close(pfds[fd_index].fd);
+	pfds.erase(pfds.begin() + fd_index);
 	return (1);
 }
 
@@ -223,15 +230,10 @@ std::pair<bool, Location> Server::match_location(std::string requested_page)
 	return (std::make_pair(false, Location()));
 }
 
-std::string Server::treat_request(Request &req, int nbytes)
+//true if response is 200 or 404, false if response is a redirect 301
+std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 {
 	(void)nbytes;
-	// (void)req;
-	// std::string response = "HTTP/1.0 301 Moved permanently\r\n";
-	// response += "Location: 10.3.102.2:8080/upload/404.html\r\n";
-	// std::cout << response << std::endl;
-	// return (response);
-
 
 	std::string full_path;
 	std::string path;
@@ -269,14 +271,14 @@ std::string Server::treat_request(Request &req, int nbytes)
 			{
 				if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
 				{
-					return (get_response(req.uri + "/", req.protocol, 301));
+					return (std::make_pair(false, get_response(req.uri + "/", req.protocol, 301)));
 				}
 			}
 		}
 	}
 	else
 	{
-
+		
 	}
 	//we are getting a GET request on server
 	if (!req.type.compare("GET"))
@@ -292,12 +294,12 @@ std::string Server::treat_request(Request &req, int nbytes)
 			else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
 			{
 				std::cout << "Couldn't find file : " << path << std::endl;
-				http_response = get_response(path + "/404.html", req.protocol, 404);
+				http_response = get_response(path + "/" + , req.protocol, 404);
 			}
 			fclose(file_fd);
-			return (http_response);
+			return (std::make_pair(true,http_response));
 		}
 	}
 	//remove, just present for testing
-	return (std::string());
+	return (std::make_pair(false, std::string()));
 }
