@@ -236,7 +236,8 @@ std::string Server::treat_request(Request &req, int nbytes)
 {
 	std::string full_path;
 	std::string path;
-	(void)nbytes;
+
+	std::string error_page;
 	//Check client_max_body_size to see if the request is not too long
 	
 	// if (nbytes > rule_set.get_client_max_body_size())
@@ -260,7 +261,7 @@ std::string Server::treat_request(Request &req, int nbytes)
 		//requested page url
 		std::string requested_page = std::string(req.uri);
 		
-
+		error_page = location.location_map["error_page"];
 		//add to our path a substring of our requested page beginning from the point our 
 		//location prefix ends. 
 		// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
@@ -276,6 +277,10 @@ std::string Server::treat_request(Request &req, int nbytes)
 				
 		}
 	}
+	else
+	{
+		error_page = this->rule_set.directives["error_page"];
+	}
 	//we are getting a GET request on server
 	if (!req.type.compare("GET"))
 	{
@@ -289,8 +294,8 @@ std::string Server::treat_request(Request &req, int nbytes)
 				http_response = get_response(path, req.protocol , 200);
 			else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
 			{
-				// std::cout << "Couldn't find file : " << path << std::endl;
-				http_response = get_response(std::string(path) + "/404.html", req.protocol, 404);
+				std::cout << "Couldn't find file : " << path << std::endl;
+				http_response = get_response(path + "/" + error_page, req.protocol, 404);
 			}
 			fclose(file_fd);
 			return (http_response);
