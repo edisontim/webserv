@@ -167,6 +167,8 @@ int Server::poll_fds(void)
 				// std::cout << hostname << std::endl;
 				std::pair<bool, std::string> request_treated;
 				std::string http_response = "";
+					std::cout << full_request << std::endl; // remove
+
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
 				{
 					//if we find a virtual server whose server_name directives matches with the Host field
@@ -292,7 +294,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 
 	//we are getting a GET request on server
 	if (req.type == "POST")
-		this->treat_post_request(req, location, path);
+		this->treat_post_request(req, location, path, server_directory);
 
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));

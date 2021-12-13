@@ -146,7 +146,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	
 	if (status == 404)
 		response += " " + itoa(status) + " Page not found\r\n";
-	
+
 	if (status == 301)
 	{
 		response += " " + itoa(status) + " Moved permanently\r\n";
@@ -159,7 +159,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	if (status == 1)
 		response += " 200 OK\r\n";
 	
-	if (status == 502)
+	if (status == 405)
 	{
 
 	}
