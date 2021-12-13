@@ -154,6 +154,7 @@ int Server::poll_fds(void)
 				buff[nbytes] = '\0';
 				std::string	full_request(buff);
 				Request	request(full_request);
+				std::cout << full_request << std::endl;
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				

@@ -1,6 +1,6 @@
-#include "Server.hpp"
 #include <unistd.h>
-#include <sys/stat.h>
+#include "Server.hpp"
+#include "webserv.hpp"
 
 bool    file_is_php(std::string & uri)
 {
@@ -17,22 +17,18 @@ bool    file_is_php(std::string & uri)
     return (false);
 }
 
-// void    php_cgi()
-// {
-
-// }
-
 std::string Server::treat_post_request(Request & request, Location &location, std::string path, std::string server_directory)
 {
     std::string http_response;
 
     std::cout << "path: " << path << std::endl;
-    std::cout << "request.uri: " << request.uri << std::endl;
-    std::cout << "server_directory: " << server_directory << std::endl;
+    std::cout << "server directory: " << server_directory << std::endl;
+    std::cout << "request uri: " << request.uri << std::endl;
+    request.print();
 
     if (file_is_php(request.uri)) {
-        // php_cgi()
         std::cout << "calling cgi" << std::endl;
+        php_cgi(request, server_directory, path);
     }
     else {
         // we need to look for the page in the directory where we are rn
