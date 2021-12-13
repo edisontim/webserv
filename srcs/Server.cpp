@@ -232,66 +232,77 @@ std::pair<bool, Location> Server::match_location(std::string requested_page)
 	return (std::make_pair(false, Location()));
 }
 
-//true if response is 200 or 404, false if response is a redirect 301
+//false if response is a redirect 301, true otherwise
 std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 {
 	(void)nbytes;
 
 	std::string full_path;
 	std::string path;
-
-	std::string error_page;
-	//Check client_max_body_size to see if the request is not too long
-	
-	// if (nbytes > rule_set.get_client_max_body_size())
-	// return (std::string());
+	Location location;
+	std::string server_directory;
 
 	// see if the page requested matches a location in our rules
 	std::pair<bool, Location> found = match_location(req.uri);
 
 	//page requested is a page included in a location block
-
+	
 	if (found.first)
+		location = found.second;
+	else
+		location = Location();
+
+	//if location.location_map["return"].length() != 0
+	//	return (false, get_response(301)) ?? 
+
+	//our set of rules from the location match
+	location = found.second;
+
+	//our file path inside our server's directories (file that we actually need to open)
+	path = location.location_map["root"];
+	
+	//add to our path a substring of our requested page beginning from the point our 
+	//location prefix ends. 
+	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
+	// then we need to look were the url continues, and add that to the back of our root
+
+	path += req.uri.substr(location.prefix.length());
+	
+	//not the safest way to get the substring until the last / ??
+	server_directory = path;
+	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
+
+	if (req.uri.back() == '/') //if it's a directory
 	{
-		//our set of rules from the location match
-		Location location = found.second;
-
-		//our file path inside our server's directories (file that we actually need to open)
-		path = location.location_map["root"];
-		
-		error_page = location.location_map["error_page"];
-		//add to our path a substring of our requested page beginning from the point our 
-		//location prefix ends. 
-		// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
-		// then we need to look were the url continues, and add that to the back of our root
-		path += req.uri.substr(location.prefix.length());
-
-		if (req.uri.back() == '/') //if it's a directory
-			path += location.location_map["index"]; 
-		else
-		{
-			struct stat s;
-			if (!stat(path.c_str(), &s))
-			{
-				if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
-				{
-					return (std::make_pair(false, get_response(req.uri + "/", req.protocol, 301)));
-				}
-			}
-		}
+		path += location.location_map["index"];
+		if (location.location_map["autoindex"] == "on" && !found_file(path))
+			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1)));
 	}
 	else
 	{
-		error_page = this->rule_set.directives["error_page"];
+		struct stat s;
+		if (!stat(path.c_str(), &s))
+		{
+			if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
+			{
+				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301)));
+			}
+		}
 	}
+	//if we got to here, we either have : 
+	//	1. the path was a directory so we added the index directive to it
+	//	2. the path is a file, we don't know if it's valid or not yet
+	// SHOULD WE CHECK IF IT'S A VALID FILE HERE ? AND SEND A 404 if it's not 
+	if (location.location_map[req.type] != "true")
+		return (std::make_pair(true, get_response(path, std::string(), std::string(), 502)));
+
 	//we are getting a GET request on server
 	if (req.type == "POST")
-	{
-		this->treat_post_request(req, path, found.second);
-	}
-	if (!req.type.compare("GET"))
-		return (treat_get_request(req, path, error_page));
+		this->treat_post_request(req, location, path, server_directory);
 
-	//remove, just present for testing
-	return (std::make_pair(false, std::string()));
+	if (req.type == "GET")
+		return (treat_get_request(req, location, path, server_directory));
+
+	//remove, just present for compiling
+	return (std::make_pair(false, "Don't send giberrish to our server"));
 }

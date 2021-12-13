@@ -1,14 +1,6 @@
 #include "Server.hpp"
 #include <unistd.h>
 #include <sys/stat.h>
-    //  post request, we need:
-    //      - uri
-    //      - protocol
-    //      - Host
-    //      - Content-Length
-    //      - Content-type
-    //      - Data
-    // request.print();
 
 bool    file_is_php(std::string & uri)
 {
@@ -32,27 +24,19 @@ bool    file_exists(std::string & path)
 }
 
 
-std::string Server::treat_post_request(Request & request, std::string path, Location location)
+std::string Server::treat_post_request(Request & request, Location &location, std::string path, std::string server_directory)
 {
     std::string http_response;
 
     // path: ./website/postform.html
     // error_page: 404.html
     std::cout << "path: " << path << std::endl;
-    std::cout << "error_page: " << error_page << std::endl;
-    int i = 0;
-    while (i < get_rules().locations.size())
-    {
-        if ()
-            std::cout << this->get_rules().locations
-
-    }
 
     // check if page requested (path variable) exists (if not, serve error page)
     if (!file_exists(path))
     {
         std::cout << "Couldn't find file : " << path << std::endl;
-        http_response = get_response(this-> + error_page, request.protocol, 404);
+        http_response = get_response(server_directory + location.location_map["error_page"], request.uri, request.protocol, 404);
         std::cout << "response: " << http_response << std::endl;
     }
     else
