@@ -156,17 +156,12 @@ int Server::poll_fds(void)
 				Request	request(full_request);
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
-					continue ;
-				
-				if (!request.type.compare("POST"))
-					std::cout << "Got POST request" << std::endl;
-				
+					continue ;				
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
 				std::pair<bool, std::string> request_treated;
 				std::string http_response = "";
-					std::cout << full_request << std::endl; // remove
 
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
 				{
@@ -294,11 +289,11 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//	2. the path is a file, we don't know if it's valid or not yet
 	// SHOULD WE CHECK IF IT'S A VALID FILE HERE ? AND SEND A 404 if it's not 
 	if (location.location_map[req.type] != "true")
-		return (std::make_pair(true, get_response(path, std::string(), std::string(), 502)));
+		return (std::make_pair(true, get_response(path, std::string(), std::string(), 405)));
 
 	//we are getting a GET request on server
 	if (req.type == "POST")
-		this->treat_post_request(req, location, path, server_directory);
+		return (std::make_pair(true, this->treat_post_request(req, location, path, server_directory)));
 
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));
