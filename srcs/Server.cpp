@@ -164,10 +164,8 @@ int Server::poll_fds(void)
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
-				// std::cout << hostname << std::endl;
 				std::pair<bool, std::string> request_treated;
 				std::string http_response = "";
-					std::cout << full_request << std::endl; // remove
 
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
 				{
@@ -256,23 +254,25 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 
 	//our file path inside our server's directories (file that we actually need to open)
 	path = location.location_map["root"];
-	
+
 	//add to our path a substring of our requested page beginning from the point our 
 	//location prefix ends. 
 	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 	// then we need to look were the url continues, and add that to the back of our root
-
 	path += req.uri.substr(location.prefix.length());
-	
 	//not the safest way to get the substring until the last / ??
+	
 	server_directory = path;
-	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
 
+	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
+	
 	if (req.uri.back() == '/') //if it's a directory
 	{
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
+		{
 			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1)));
+		}
 	}
 	else
 	{
@@ -288,7 +288,17 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//if we got to here, we either have : 
 	//	1. the path was a directory so we added the index directive to it
 	//	2. the path is a file, we don't know if it's valid or not yet
-	// SHOULD WE CHECK IF IT'S A VALID FILE HERE ? AND SEND A 404 if it's not 
+	//check here for 404 file not found
+	if (!found_file(path))
+	{
+		path = server_directory + location.location_map["error_page"];
+		if (!found_file(path))
+			return (std::make_pair(true, generate_error_page()));
+		else
+		{
+			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404)));
+		}
+	}
 	if (location.location_map[req.type] != "true")
 		return (std::make_pair(true, get_response(path, std::string(), std::string(), 502)));
 

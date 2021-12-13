@@ -108,6 +108,10 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 			iter++;
 		}
 	}
+	if (new_location.location_map["root"].back() != '/')
+		new_location.location_map["root"] += "/";
+	if (new_location.prefix.back() == '/')
+		new_location.prefix.resize(new_location.prefix.size() - 1);
 	new_rules.locations.push_back(new_location);
 	return (block_end);
 }

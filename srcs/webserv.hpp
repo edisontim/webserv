@@ -41,5 +41,6 @@ std::string							dt_string(std::string full_path, DT which);
 std::string							get_response(std::string full_path, std::string req_uri, std::string http_v, int status);
 void								cleanup(int);
 int									found_file(std::string path);
+std::string							generate_error_page(void);
 
 #endif

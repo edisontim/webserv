@@ -2,7 +2,6 @@
 #include "Server.hpp"
 #include <sstream>
 
-//function launched before leaving the program 
 
 template <typename T>
 std::string itoa( T Number )
@@ -10,6 +9,27 @@ std::string itoa( T Number )
 	std::ostringstream ss;
 	ss << Number;
 	return ss.str();
+}
+
+std::string generate_error_page(void)
+{
+	std::string body = 
+"<!doctype html>\
+<html>\
+<head>\
+<title>Nope</title>\
+</head>\
+<body>\
+<p>Default error page</p>\
+</body>\
+</html>";
+	std::string headers = 
+"HTTP/1.1 404 Page not found\r\n\
+Server: webserv\r\n\
+Content-type: text/html\r\n\
+Content-length: " + itoa(body.length());
+headers += "\r\nConnection: Closed\r\n\r\n";
+	return (headers + body);
 }
 
 std::string add_a_tag(std::string name)
@@ -44,7 +64,6 @@ std::string autoindex(std::string path, std::string uri)
 "</pre><hr>\
 </body>\
 </html>";
-	// std::cout << body << std::endl;
 	return (body);
 }
 
@@ -151,8 +170,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	{
 		response += " " + itoa(status) + " Moved permanently\r\n";
 		//path is actually the full url requested 
-		response += "Location: " + path + "\r\n\r\n";
-		std::cout << response << std::endl;
+		response += "Location: " + req_uri + "\r\n\r\n";
 		return (response);
 	}
 
@@ -221,7 +239,6 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	//Connection type
 	response += "Connection: Closed\r\n\r\n";
 	response += body;
-
 	return (response);
 }
 

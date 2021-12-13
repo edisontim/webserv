@@ -26,6 +26,7 @@ Request::Request(std::string request)
         std::getline(iss, line);
         this->data = line;
     }
+	headers["Host"] = headers["Host"].substr(0, headers["Host"].rfind(":"));
 }
 
 Request::~Request() {}
