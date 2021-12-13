@@ -1,5 +1,7 @@
 #include "Server.hpp"
-
+//TODO
+//DEFAULT ERROR PAGE IN CASE THE SPECIFIED ONE DOESN'T EXIST
+//PARSE HOSTNAME
 std::pair<bool, std::string> Server::treat_get_request(Request &req, Location &location, std::string path, std::string server_directory)
 {
     //treating HTTP/1.1 request

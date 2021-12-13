@@ -4,7 +4,6 @@
 
 //TODO ON PARSING
 //================
-//parse location block
 
 void	display_map(std::map<std::string, std::string> map)
 {

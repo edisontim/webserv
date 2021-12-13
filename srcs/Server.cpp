@@ -164,6 +164,7 @@ int Server::poll_fds(void)
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
+				// std::cout << hostname << std::endl;
 				std::pair<bool, std::string> request_treated;
 				std::string http_response = "";
 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
@@ -244,17 +245,12 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	std::pair<bool, Location> found = match_location(req.uri);
 
 	//page requested is a page included in a location block
+	location = found.second;
 	
-	if (found.first)
-		location = found.second;
-	else
-		location = Location();
-
 	//if location.location_map["return"].length() != 0
 	//	return (false, get_response(301)) ?? 
 
 	//our set of rules from the location match
-	location = found.second;
 
 	//our file path inside our server's directories (file that we actually need to open)
 	path = location.location_map["root"];
