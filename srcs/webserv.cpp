@@ -86,13 +86,18 @@ int main(int argc, char *argv[])
 			return (1);
 		}
 	}
-	else
+	else if (argc == 1)
 	{
 		if (!conf_file("conf.d/webserv.conf", servers))
 		{
 			std::cerr << "Default config file not found and none was provided" << std::endl;
 			return (1);
 		}
+	}
+	else
+	{
+		std::cerr << "Wrong number of arguments" << std::endl;
+		return (1);
 	}
 
 	i = 0;

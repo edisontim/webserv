@@ -92,9 +92,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	}
 	else
 		std::cout << "No socket was connected" << std::endl;
-	
-	ip_port = *(struct sockaddr_in *)iter->ai_addr;
-	freeaddrinfo(res);
+
 
 	// if we got to the end of the linked list, that means no socket_fd was binded
 	if (iter == NULL)
@@ -103,6 +101,8 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 		return (NO_BOUND);
 	}
 
+	ip_port = *(struct sockaddr_in *)iter->ai_addr;
+	freeaddrinfo(res);
 
 	if (listen(socket_fd, 10) == -1)
 	{
@@ -110,38 +110,6 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 		return (LISTEN_FAIL);
 	}
 	return (0);
-
-
-	// (void)service;
-
-	// int _true;
-	// struct sockaddr_in serv_addr;
-	// int sock_fd;
-
-	// std::cout << "hostname : " << hostname << std::endl;
-	// std::cout << "service : " << service << std::endl;
-	// serv_addr.sin_family = AF_INET;
-	// serv_addr.sin_port = htons(8080);
-	// serv_addr.sin_addr.s_addr = inet_addr(hostname);
-	
-	// memset(serv_addr.sin_zero, '\0', sizeof(serv_addr.sin_zero));
-	
-	// sock_fd = socket(PF_INET, SOCK_STREAM, 0);
-	
-	
-	// setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &_true, sizeof(_true));
-	
-	// if (sock_fd < 0)
-	// 	std::cerr << "fail with socket" << std::endl;
-
-	// if (bind(sock_fd, (const struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
-	// 	std::cerr << "fail with bind" << std::endl;
-
-	// socket_fd = sock_fd;
-
-	// if (listen(sock_fd, 5) == -1)
-	// 	return (LISTEN_FAIL);
-	// return (1);
 }
 
 struct addrinfo Internet_socket::get_hints(void)

@@ -4,12 +4,7 @@ Rules::Rules()
 {
 	directives.insert(std::make_pair("listen", ""));
 	directives.insert(std::make_pair("server_name", ""));
-	directives.insert(std::make_pair("error_page", ""));
 	directives.insert(std::make_pair("client_max_body_size", ""));
-	//set to off by default
-	directives.insert(std::make_pair("autoindex", "off"));
-	//set to executable's default directory
-	directives.insert(std::make_pair("root", "."));
 }
 
 Rules::Rules(Rules const &cpy)

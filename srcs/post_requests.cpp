@@ -1,9 +1,9 @@
 #include "Server.hpp"
 
-std::string Server::treat_post_request(Request & request, std::string path, std::string error_page)
+std::string Server::treat_post_request(Request & request, Location &location, std::string path)
 {
+	(void)location;
     (void)path;
-    (void)error_page;
     //  post request, we need:
     //      - uri
     //      - protocol

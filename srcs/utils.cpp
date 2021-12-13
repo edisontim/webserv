@@ -4,7 +4,6 @@
 
 //function launched before leaving the program 
 
-
 template <typename T>
 std::string itoa( T Number )
 {
@@ -13,9 +12,55 @@ std::string itoa( T Number )
 	return ss.str();
 }
 
+std::string add_a_tag(std::string name)
+{
+	return ("<a href=\"" + name + "\">" + name + "</a>");
+}
+
+//path is the server's directory
+std::string autoindex(std::string path, std::string uri)
+{
+	DIR *dir = opendir(path.c_str());
+	if (!dir)
+		return (std::string());
+	struct dirent *current_entry;
+
+	std::string body = 
+"<!doctype html> \
+<html>\
+	<head>\
+		<title>Nope</title>\
+		<link rel=\"stylesheet\" href=\"mystyle.css\">\
+		<link rel=\"icon\" type=\"image/png\" href=\"favicon.png\">\
+	</head>\
+<body>\
+<h1>Index of " + uri + "</h1><hr><pre>";
+	while ((current_entry = readdir(dir)))
+	{
+		body += add_a_tag(current_entry->d_name);
+		body += "</br>";
+	}
+	body += 
+"</pre><hr>\
+</body>\
+</html>";
+	// std::cout << body << std::endl;
+	return (body);
+}
+
+
 void cleanup(int)
 {
 	exit(1);
+}
+
+int found_file(std::string path)
+{
+	FILE *file_fd = fopen(path.c_str(), "r");
+	if (!file_fd)
+		return (0);
+	fclose(file_fd);
+	return (1);
 }
 
 void *get_in_addr(struct sockaddr *address)
@@ -87,11 +132,13 @@ std::string dt_string(std::string full_path, DT which)
 	return (buff);
 }
 
-std::string get_response(std::string full_path, std::string http_v, int status)
+std::string get_response(std::string path, std::string req_uri, std::string http_v, int status)
 {
+	//starts with HTTP/1.1 or HTTP/1.0
 	std::string response = http_v;
 	std::string body;
 	std::string extension;
+
 
 	// response status line
 	if (status == 200)
@@ -103,15 +150,23 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 	if (status == 301)
 	{
 		response += " " + itoa(status) + " Moved permanently\r\n";
-		//full_path is actually the full url requested 
-		response += "Location: " + full_path + "\r\n\r\n";
+		//path is actually the full url requested 
+		response += "Location: " + path + "\r\n\r\n";
 		std::cout << response << std::endl;
 		return (response);
 	}
 
+	if (status == 1)
+		response += " 200 OK\r\n";
+	
+	if (status == 502)
+	{
+
+	}
+
 	//get current time /!\\ careful, needs to be adapted to WINTER TIME
 	response += "Date: ";
-	response += dt_string(full_path, CURRENT);
+	response += dt_string(path, CURRENT);
 	response += "\r\n";
 
 	//name of the server and OS it's running on
@@ -120,19 +175,36 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 
 	//get time of last modification of file
 	response += "Last modified: ";
-	response += dt_string(full_path, LAST_MODIFIED);
+	response += dt_string(path, LAST_MODIFIED);
 	response += "\r\n";
 
 	//Content-type of file
-	std::map<std::string, std::string> file_types = file_extensions_map();
-	extension = get_extension(file_types, full_path);
-	response += "Content-type: ";
-	response += extension;
-	response += "\r\n"; 
-	
-	//get content of HTML file
-	// response += "Accept-Ranges: bytes\r\n";
-	body = file_content(full_path);
+	if (status == 1)
+		response += "Content-type: text/html\r\n";
+	else
+	{
+		std::map<std::string, std::string> file_types = file_extensions_map();
+		extension = get_extension(file_types, path);
+		response += "Content-type: ";
+		response += extension;
+		response += "\r\n";
+	}
+	//autoindex status
+	if (status == 1)
+	{
+		body = autoindex(path, req_uri);
+		response += "Content-length: " + itoa(body.length());
+		response += "\r\n";
+		response += "Connection: Closed\r\n\r\n";
+		response += body;
+		return (response);
+	}
+	else
+	{
+		//get content of HTML file
+		// response += "Accept-Ranges: bytes\r\n";
+		body = file_content(path);
+	}
 	if (body == "")
 		return (std::string());
 
@@ -141,7 +213,7 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 	unsigned int total_length;	
 
 	stringstream ss;
-	total_length = file_byte_dimension(full_path);
+	total_length = file_byte_dimension(path);
 	ss << total_length;
 	response += ss.str();
 	response += "\r\n";
@@ -149,7 +221,6 @@ std::string get_response(std::string full_path, std::string http_v, int status)
 	//Connection type
 	response += "Connection: Closed\r\n\r\n";
 	response += body;
-	// std::cout << response << std::endl;
 
 	return (response);
 }
