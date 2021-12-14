@@ -42,5 +42,6 @@ std::string							get_response(std::string full_path, std::string req_uri, std::
 void								cleanup(int);
 int									found_file(std::string path);
 std::string							generate_error_page(void);
+std::string							split(std::string &src, std::string delim);
 
 #endif

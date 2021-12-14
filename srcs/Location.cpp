@@ -15,6 +15,8 @@ Location::Location()
 	location_map.insert(std::make_pair("return", ""));
 	//defaults to 404.html
 	location_map.insert(std::make_pair("error_page", "404.html"));
+	location_map.insert(std::make_pair("cgi_path", ""));
+	location_map.insert(std::make_pair("upload_path", ""));
 }
 
 Location::Location(std::string new_url)
@@ -34,6 +36,9 @@ Location::Location(std::string new_url)
 	location_map.insert(std::make_pair("return", ""));
 	//defaults to 404.html
 	location_map.insert(std::make_pair("error_page", "404.html"));
+	location_map.insert(std::make_pair("cgi_path", ""));
+	location_map.insert(std::make_pair("upload_path", ""));
+
 }
 
 

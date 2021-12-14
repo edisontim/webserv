@@ -63,6 +63,22 @@ std::string new_word(std::string block, int i)
 	return (block.substr(word_begin, i - word_begin));
 }
 
+//server/location block string, index of end of directive
+std::string return_directive(std::string block, int i)
+{
+	unsigned int word_begin;
+	while (block[i] && isspace(block[i]))
+		i++;
+	word_begin = i;
+	while (block[i] && block[i] != ';')
+		i++;
+	std::string word = block.substr(word_begin, i - word_begin);
+	//if the word is only a { then that means the url for the location wasn't specified
+	if (!word.compare("{"))
+		return (std::string());
+	return (block.substr(word_begin, i - word_begin));
+}
+
 //function has to return the number of characters we treated from the server block
 int treat_location(Rules &new_rules, std::string server_block, int i)
 {
@@ -104,12 +120,17 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 		while (iter != new_location.location_map.end())
 		{
 			if (!keyword.compare(iter->first))
-				iter->second = new_word(location_string, j);
+			{
+				if (keyword == "return")
+					iter->second = return_directive(location_string, j);
+				else
+					iter->second = new_word(location_string, j);
+			}
 			iter++;
 		}
 	}
-	if (new_location.location_map["root"].back() != '/')
-		new_location.location_map["root"] += "/";
+	// if (new_location.location_map["root"].back() != '/')
+	// 	new_location.location_map["root"] += "/";
 	if (new_location.prefix.back() == '/')
 		new_location.prefix.resize(new_location.prefix.size() - 1);
 	new_rules.locations.push_back(new_location);

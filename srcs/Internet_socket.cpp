@@ -56,10 +56,10 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	for (iter = res; iter != NULL; iter = iter->ai_next)
 	{
 		socket_fd = socket(iter->ai_family, iter->ai_socktype, hints.ai_protocol);
-
 		if (socket_fd < 0)
 			continue;
 
+		fcntl(socket_fd, F_SETFL, O_NONBLOCK);
 
 		// Stop the "address already in use" error message
 		setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));

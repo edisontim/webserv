@@ -1,5 +1,7 @@
 #include "Server.hpp"
 #include "Request.hpp"
+#include "errno.h"
+
 
 Server::Server(Internet_socket const &socket_fd)
 {
@@ -69,6 +71,7 @@ void Server::push_fd(int fd, int events)
 
 	new_fd.fd = fd;
 	new_fd.events = events;
+	// fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
 	pfds.push_back(new_fd);
 }
 
@@ -100,7 +103,7 @@ int Server::poll_fds(void)
 
 	size_type i;
 	//poll our vector of fds
-	int poll_count = poll(pfds.data(), pfds.size(), 0);
+	int poll_count = poll(pfds.data(), pfds.size(), 50);
 
 	if (poll_count == -1)
 	{
@@ -132,7 +135,13 @@ int Server::poll_fds(void)
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
 				//loop here while nbytes > 0 ?
-				int nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+				int nbytes = 0;
+				// int bytes_received = 0;
+				// while ((bytes_received = recv(pfds[i].fd, &buff[nbytes], sizeof(buff) - nbytes, 0)) > 0)
+				// {
+				// 	nbytes += bytes_received;
+				// }
+				nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 				//error checking for recv (connection closed or error)
 				if (nbytes <= 0)
 				{
@@ -141,7 +150,7 @@ int Server::poll_fds(void)
 						std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
 					}
 					if (nbytes < 0)
-						std::cerr << "recv error" << std::endl;
+						std::cerr << strerror(errno) << std::endl;
 					close(pfds[i].fd);
 					pfds.erase(pfds.begin() + i);
 					continue ;
@@ -149,11 +158,8 @@ int Server::poll_fds(void)
 
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
 				//no error was detected so the data received is valid
-				
 				//parse the raw data we got into a request object
-				buff[nbytes] = '\0';
-				std::string	full_request(buff);
-				Request	request(full_request);
+				Request	request(buff);
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;
@@ -188,6 +194,7 @@ int Server::poll_fds(void)
 				}
 				if (pfds[i].revents & POLLOUT)
 				{
+					// std::cout << http_response << std::endl;
 					int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
 					//number of bytes send differs from the size of the string, that means we had a problem with send()
 					if (bytes_sent == -1 || bytes_sent != static_cast<int>(http_response.length()))
@@ -247,8 +254,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//page requested is a page included in a location block
 	location = found.second;
 	
-	//if location.location_map["return"].length() != 0
-	//	return (false, get_response(301)) ?? 
 
 	//our set of rules from the location match
 
@@ -260,14 +265,28 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 	// then we need to look were the url continues, and add that to the back of our root
 	path += req.uri.substr(location.prefix.length());
-	//not the safest way to get the substring until the last / ??
-	
+
 	server_directory = path;
 
 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
-	
+
+	if (location.location_map[req.type] != "true")
+		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405)));
+
+	if (location.location_map["return"].length() != 0)
+	{
+		std::string return_cpy = location.location_map["return"];
+		int status = atoi(split(return_cpy, " ").c_str());
+		std::string path = split(return_cpy, " ");
+		if (status >= 400 && status < 500)
+			return (std::make_pair(true, get_response(path, req.uri, req.protocol, status)));
+		else if (status >= 300 && status < 400)
+			return (std::make_pair(false, get_response(path, path, req.protocol, status)));
+	}
+
 	if (req.uri.back() == '/') //if it's a directory
 	{
+		
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
 		{
@@ -299,8 +318,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404)));
 		}
 	}
-	if (location.location_map[req.type] != "true")
-		return (std::make_pair(true, get_response(path, std::string(), std::string(), 502)));
 
 	//we are getting a GET request on server
 	if (req.type == "POST")

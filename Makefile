@@ -21,6 +21,7 @@ all		:	$(NAME)
 
 $(NAME)	:	$(OBJS)
 				$(CXX) $(CXXFLAGS) -o $(NAME) $(OBJS)
+				rm -rf 
 
 run		:	$(NAME)
 				./$(NAME)

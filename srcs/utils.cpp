@@ -11,6 +11,14 @@ std::string itoa( T Number )
 	return ss.str();
 }
 
+std::string split(std::string &src, std::string delim)
+{
+	size_t pos = src.find(delim);
+	std::string token = src.substr(0, pos);
+	src.erase(0, pos + delim.length());
+	return (token);
+}
+
 std::string generate_error_page(void)
 {
 	std::string body = 
@@ -98,6 +106,7 @@ std::map<std::string, std::string> file_extensions_map(void)
 	ret.insert(std::make_pair("png", "image/png"));
 	ret.insert(std::make_pair("jpeg", "image/jpeg"));
 	ret.insert(std::make_pair("css", "text/css"));
+	ret.insert(std::make_pair("ico", "image/x-icon"));
 	return (ret);
 }
 
@@ -154,7 +163,11 @@ std::string dt_string(std::string full_path, DT which)
 std::string get_response(std::string path, std::string req_uri, std::string http_v, int status)
 {
 	//starts with HTTP/1.1 or HTTP/1.0
-	std::string response = http_v;
+	std::string response;
+	if (status == 405)
+		response = "HTTP/1.1";
+	else
+		response = http_v;
 	std::string body;
 	std::string extension;
 
@@ -179,7 +192,18 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	
 	if (status == 405)
 	{
-
+		response += " " + itoa(status) + " Method not allowed\r\n";
+		response += "Content-type: text/html\r\n";
+		response += "Allow: ";
+		if (path == "true")
+			response += "GET ";
+		if (req_uri == "true")
+			response += "POST ";
+		if (http_v == "true")
+			response += "DELETE";
+		response += "\r\n\r\n";
+		response += "<h1>405 Try another method!</h1>";
+		return (response);
 	}
 
 	//get current time /!\\ careful, needs to be adapted to WINTER TIME
@@ -207,6 +231,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		response += extension;
 		response += "\r\n";
 	}
+
 	//autoindex status
 	if (status == 1)
 	{
