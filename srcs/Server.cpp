@@ -86,6 +86,25 @@ size_t Server::vector_size(void)
 	return (pfds.size());
 }
 
+//send all the data
+int Server::send_all(int fd, std::string http_response, int *len)
+{
+	int total = 0;
+	int bytes_left = *len;
+	int n;
+	while (total < *len)
+	{
+		n = send(fd, http_response.c_str(), http_response.length(), 0);
+		if (n == -1)
+			break ;
+		total += n;
+		bytes_left -= n;
+	}
+	*len = total; //actual number sent
+	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
+}
+
+
 int Server::poll_fds(void)
 {
 	//buffer to hold the data we receive from an incoming connection
@@ -194,10 +213,11 @@ int Server::poll_fds(void)
 				}
 				if (pfds[i].revents & POLLOUT)
 				{
-					// std::cout << http_response << std::endl;
-					int bytes_sent = send(pfds[i].fd, http_response.c_str(), http_response.length(), 0);
+					int len = http_response.length();
+					int bytes_sent = send_all(pfds[i].fd, http_response, &len);
+					
 					//number of bytes send differs from the size of the string, that means we had a problem with send()
-					if (bytes_sent == -1 || bytes_sent != static_cast<int>(http_response.length()))
+					if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
 					{
 						if (bytes_sent == -1)
 							std::cerr << "error on send" << std::endl;
@@ -326,6 +346,8 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));
 
+	if (req.type == "DELETE")
+		return (std::make_pair(true, treat_delete_request(path)));
 	//remove, just present for compiling
 	return (std::make_pair(false, "Don't send giberrish to our server"));
 }

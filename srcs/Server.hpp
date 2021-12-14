@@ -93,6 +93,8 @@ class Server
 		int								close_connection(int fd_index);
 		std::pair<bool, std::string>	treat_get_request(Request &req, Location &location, std::string path, std::string server_directory);
 		std::string						treat_post_request(Request & request, Location &location, std::string path, std::string server_directory);
+		std::string						treat_delete_request(std::string path);
+		int 							send_all(int fd, std::string http_response, int *len);
 
 
 		
