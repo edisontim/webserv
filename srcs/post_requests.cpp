@@ -21,14 +21,10 @@ std::string Server::treat_post_request(Request & request, Location &location, st
 {
     std::string http_response;
 
-    std::cout << "path: " << path << std::endl;
-    std::cout << "server directory: " << server_directory << std::endl;
-    std::cout << "request uri: " << request.uri << std::endl;
-    request.print();
-
     if (file_is_php(request.uri)) {
-        std::cout << "calling cgi" << std::endl;
-        php_cgi(request, server_directory, path);
+        // generate html and response with php-cgi
+        std::cout << "we need cgi" << std::endl;
+        return (php_cgi(request, server_directory, path));
     }
     else {
         // we need to look for the page in the directory where we are rn

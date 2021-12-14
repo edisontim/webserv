@@ -294,7 +294,7 @@ size_t conf_file(std::string path, std::vector<Server *> &servers)
 		return (0);
 	fclose(file_fd);
 	//get the content of the file as a string
-	file_string = file_content(path);
+	file_string = file_content(path, 0);
 
 	while (1)
 	{

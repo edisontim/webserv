@@ -30,7 +30,7 @@ void    php_fill_env(Request & request, std::string path, char *env[13])
     env[i] = NULL;
 }
 
-void    php_cgi(Request & request, std::string server_directory, std::string path)
+std::string    php_cgi(Request & request, std::string server_directory, std::string path)
 {
     char                *cgi_args[3];
     int                 tubes[2];
@@ -51,13 +51,14 @@ void    php_cgi(Request & request, std::string server_directory, std::string pat
     cgi_args[2] = NULL;
 
     cgi_output_path = server_directory + "cgi_output.html";
-    fd = open(cgi_output_path.c_str(), O_RDWR | O_CREAT, 0777);
+    fd = open(cgi_output_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
     pipe(tubes);
     ss_content_length >> content_length;
 
     write(tubes[1], request.data.c_str(), content_length);
     php_fill_env(request, path, env);
+
 
     cgi_pid = fork();
     if (cgi_pid == 0)
@@ -67,10 +68,18 @@ void    php_cgi(Request & request, std::string server_directory, std::string pat
         dup2(fd, 1);
         execve(cgi_args[0], cgi_args, env);
     }
+    waitpid(cgi_pid, NULL, 0);
+
     close(tubes[0]);
     close(tubes[1]);
-    delete cgi_args[0];
-    delete cgi_args[1];
+    delete [] cgi_args[0];
+    delete [] cgi_args[1];
     for (int i = 0; i < 13 ; i++)
         delete env[i];
+    
+    close(fd);
+    
+    std::string http_response = get_response(cgi_output_path, request.uri, request.protocol, 200, 1);
+    std::cout << "http_response: " << http_response << std::endl;
+    return (http_response);
 }

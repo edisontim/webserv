@@ -9,11 +9,11 @@ std::pair<bool, std::string> Server::treat_get_request(Request &req, Location &l
         FILE *file_fd = fopen(path.c_str(), "r");
         std::string http_response;
         if (file_fd)
-            http_response = get_response(path, req.uri, req.protocol , 200);
+            http_response = get_response(path, req.uri, req.protocol , 200, 0);
         else //404 page not found, fopen didn't find the page requested. Change the 404.hmtl by the correct default error page coming from the conf file
         {
             // std::cout << "Couldn't find file : " << path << std::endl;
-            http_response = get_response(server_directory + location.location_map["error_page"], req.uri, req.protocol, 404);
+            http_response = get_response(server_directory + location.location_map["error_page"], req.uri, req.protocol, 404, 0);
         }
         fclose(file_fd);
         return (std::make_pair(true,http_response));

@@ -272,7 +272,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	{
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
-			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1)));
+			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
 	}
 	else
 	{
@@ -281,7 +281,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		{
 			if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
 			{
-				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301)));
+				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301, 0)));
 			}
 		}
 	}
@@ -290,11 +290,11 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//	2. the path is a file, we don't know if it's valid or not yet
 	// SHOULD WE CHECK IF IT'S A VALID FILE HERE ? AND SEND A 404 if it's not 
 	if (location.location_map[req.type] != "true")
-		return (std::make_pair(true, get_response(path, std::string(), std::string(), 405)));
+		return (std::make_pair(true, get_response(path, std::string(), std::string(), 405, 0)));
 
 	//we are getting a GET request on server
 	if (req.type == "POST")
-		return (std::make_pair(true, this->treat_post_request(req, location, path, server_directory)));
+		return (std::make_pair(false, this->treat_post_request(req, location, path, server_directory)));
 
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));
