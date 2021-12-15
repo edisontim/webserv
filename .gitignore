@@ -4,3 +4,5 @@
 webserv
 *.o
 srcs/*.o
+webserv.conf
+.gitignore
