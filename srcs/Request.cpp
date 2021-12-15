@@ -26,7 +26,19 @@ Request::Request(std::string request)
         std::getline(iss, line);
         this->data = line;
     }
+	
+	//get correct hostname without ip following
 	headers["Host"] = headers["Host"].substr(0, headers["Host"].rfind(":"));
+
+	//query strings
+	size_t find = uri.rfind("?") + 1;
+	if (find == 0)
+		query_string = "";
+	else
+	{
+		query_string = uri.substr(find);
+		uri = uri.substr(0, find - 1);
+	}
 }
 
 Request::~Request() {}

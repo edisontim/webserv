@@ -122,7 +122,7 @@ int Server::poll_fds(void)
 
 	size_type i;
 	//poll our vector of fds
-	int poll_count = poll(pfds.data(), pfds.size(), 50);
+	int poll_count = poll(pfds.data(), pfds.size(), 0);
 
 	if (poll_count == -1)
 	{

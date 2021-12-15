@@ -19,6 +19,7 @@ class Request
         std::string                         protocol;
         std::map<std::string, std::string>  headers;
         std::string                         data;
+		std::string							query_string;
 
         Request(std::string request);
         ~Request();
