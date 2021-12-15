@@ -111,9 +111,11 @@ std::map<std::string, std::string> file_extensions_map(void)
 }
 
 //gets file extension from a file path
-std::string get_extension(std::map<std::string, std::string> file_extensions, std::string full_path)
+std::string get_extension(std::map<std::string, std::string> &file_extensions, std::string full_path)
 {
-	std::string a = file_extensions.find(full_path.substr(full_path.find_last_of(".") + 1))->second;
+	std::string extension = full_path.substr(full_path.find_last_of(".") + 1);
+	std::map<std::string, std::string>::iterator iter = file_extensions.find(extension);
+	std::string a = iter->second;
 	return (a);
 }
 
@@ -185,7 +187,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	// response status line
 	if (status == 200)
 		response += " " + itoa(status) + " OK\r\n";
-	
+
 	if (status == 404)
 		response += " " + itoa(status) + " Page not found\r\n";
 
@@ -199,7 +201,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 
 	if (status == 1)
 		response += " 200 OK\r\n";
-	
+
 	if (status == 405)
 	{
 		response += " " + itoa(status) + " Method not allowed\r\n";
@@ -242,6 +244,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		response += "\r\n";
 	}
 
+
 	//autoindex status
 	if (status == 1)
 	{
@@ -260,7 +263,6 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	}
 	if (body == "")
 		return (std::string());
-
 
 	response += "Content-length: ";
 	unsigned int total_length;	

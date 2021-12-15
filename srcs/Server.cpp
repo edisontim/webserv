@@ -174,13 +174,15 @@ int Server::poll_fds(void)
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
-
-				//this is normally the first word of our request. This means the type : GET, POST, DELETE
+				
 				//no error was detected so the data received is valid
+
 				//parse the raw data we got into a request object
-				buff[nbytes] = '\0';
+
+				// buff[nbytes] = '\0';
 				Request	request(buff);
 
+				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				
 
@@ -212,7 +214,6 @@ int Server::poll_fds(void)
 				{
 					int len = http_response.length();
 					int bytes_sent = send_all(pfds[i].fd, http_response, &len);
-					
 					//number of bytes send differs from the size of the string, that means we had a problem with send()
 					if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
 					{
@@ -244,11 +245,11 @@ int	Server::close_connection(int fd_index)
 
 std::pair<bool, Location> Server::match_location(std::string requested_page)
 {
+
 	for (unsigned int i = 0; i < get_rules().locations.size(); i++)
 	{
 		std::string location_url = this->get_rules().locations[i].prefix;
-		//looks for a location block for which the requested page url has a prefix that matches with the 
-		//location prefix
+		//looks for a location block for which the requested page url has a prefix that matches with a location
 		if (!requested_page.rfind(location_url, 0))
 			return (std::make_pair(true, this->get_rules().locations[i]));
 	}
@@ -323,8 +324,11 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//	1. the path was a directory so we added the index directive to it
 	//	2. the path is a file, we don't know if it's valid or not yet
 	//check here for 404 file not found
+	std::cout << "File path : " << path << std::boolalpha << std::endl;
+	std::cout << "File exists : " << found_file(path) << std::endl << std::endl;
 	if (!found_file(path))
 	{
+
 		path = server_directory + location.location_map["error_page"];
 		if (!found_file(path))
 			return (std::make_pair(true, generate_error_page()));

@@ -32,11 +32,9 @@ Request::Request(std::string request)
 
 	//query strings
 	size_t find = uri.rfind("?") + 1;
-	if (find == 0)
-		query_string = "";
-	else
+	if (find != 0)
 	{
-		query_string = uri.substr(find);
+		query_string = uri.substr(find, std::string::npos);
 		uri = uri.substr(0, find - 1);
 	}
 }
