@@ -39,7 +39,7 @@ enum DT {CURRENT, LAST_MODIFIED};
 
 void								*get_in_addr(struct sockaddr *address);
 std::map<std::string, std::string>	file_extensions_map(void);
-std::string							get_extension(std::map<std::string, std::string> file_extensions, std::string full_path);
+std::string							get_extension(std::map<std::string, std::string> &file_extensions, std::string full_path);
 unsigned long						file_byte_dimension(std::string full_path);
 std::string							file_content(std::string full_path, int from_php);
 std::string							dt_string(std::string full_path, DT which);
@@ -48,6 +48,7 @@ void								cleanup(int);
 int									found_file(std::string path);
 std::string							generate_error_page(std::string p_text, std::string code_response);
 std::string							split(std::string &src, std::string delim);
+void								display_map(std::map<std::string, std::string> map);
 
 // cgi
 bool                            file_is_php(std::string & uri);
