@@ -25,8 +25,10 @@ Request::Request(std::string request)
     }
     if (this->type == "POST")
     {
-        std::getline(iss, line);
-        this->data = line;
+        // std::getline(iss, line);
+        iss >> this->data;
+        // this->data = line;
+        // std::cout << "data: " << this->data << std::endl;
     }
 	
 	//get correct hostname without ip following

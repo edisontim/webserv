@@ -106,7 +106,7 @@ int Server::send_all(int fd, std::string http_response, int *len)
 
 void	Server::receive_http_data(int i)
 {
-	char		buff[10];
+	char		buff[1000];
 	std::string	full_request;
 	int			nbytes;
 	int			find;
@@ -114,15 +114,14 @@ void	Server::receive_http_data(int i)
 
 	while (1)
 	{
-		nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
+		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 		if (nbytes < 0) {
 			std::cout << "RECV ERROR LOOP 1";
 			exit(0);
 		}
-		buff[nbytes] = '\0';
-		full_request += buff;
-		// std::cout << "===FULL_REQUEST===" << std::endl;
-		// std::cout << full_request << std::endl;
+		// buff[nbytes] = '\0';
+		full_request += std::string(buff, nbytes);
+		std::cout << "full request size: " << full_request.size() << std::endl;
 		memset(buff, 0, sizeof(buff));
 		find = full_request.find("\r\n\r\n");
 		if (find >= 0) {
@@ -135,12 +134,19 @@ void	Server::receive_http_data(int i)
 	long int					to_read;
 	std::stringstream	ss_content_length(tmp_request.headers["Content-Length"]);
 	unsigned int		content_length = 0;
+	unsigned int		total_bytes = 0;
+	nbytes = 1;
 
 	ss_content_length >> content_length;
 	to_read = content_length - tmp_request.data.size();
+	std::cout << "data size: " << tmp_request.data.size() << std::endl;
+	std::cout << "total bytes to read: " << to_read << std::endl;
 	while (tmp_request.type == "POST" && to_read > 0)
 	{
 		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+		if (nbytes == 0)
+			break;
+		total_bytes += nbytes;
 		if (nbytes < 0) {
 			std::cout << "RECV ERROR LOOP 2" << std::endl;
 			exit(0);
@@ -150,6 +156,7 @@ void	Server::receive_http_data(int i)
 		memset(buff, 0, sizeof(buff));
 		to_read -= nbytes;
 	}
+	std::cout << "total bytes read: " << total_bytes << std::endl;
 	if (content_length == tmp_request.data.size())
 		std::cout << "SUCCESS" << std::endl;
 	int file = open("./pascorrompu.jpg", O_CREAT | O_RDWR | O_TRUNC);
