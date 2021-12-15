@@ -179,8 +179,10 @@ int Server::poll_fds(void)
 
 				//parse the raw data we got into a request object
 
+				std::cout << "test" << std::endl;
 				// buff[nbytes] = '\0';
 				Request	request(buff);
+				request.print();
 
 				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
