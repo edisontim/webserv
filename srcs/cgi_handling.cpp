@@ -80,6 +80,5 @@ std::string    php_cgi(Request & request, std::string server_directory, std::str
     close(fd);
     
     std::string http_response = get_response(cgi_output_path, request.uri, request.protocol, 200, 1);
-    std::cout << "http_response: " << http_response << std::endl;
     return (http_response);
 }

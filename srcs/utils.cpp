@@ -129,7 +129,6 @@ unsigned long file_byte_dimension(std::string full_path)
 std::string file_content(std::string full_path, int from_php)
 {
 	//create an input file stream to read our file and put it in our buffer
-	std::cout << full_path << std::endl;
 	std::ifstream content(full_path);
 	stringstream buffer;
 

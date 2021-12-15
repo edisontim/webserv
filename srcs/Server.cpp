@@ -288,10 +288,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
 
 	if (location.location_map[req.type] != "true")
-	{	
-		std::cout << location.location_map["GET"] << std::endl;
 		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405, 0)));
-	}
 
 	if (location.location_map["return"].length() != 0)
 	{
@@ -340,7 +337,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 
 	//we are getting a GET request on server
 	if (req.type == "POST")
-		return (std::make_pair(false, this->treat_post_request(req, location, path, server_directory)));
+		return (this->treat_post_request(req, location, path, server_directory));
 
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));

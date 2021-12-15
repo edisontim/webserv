@@ -17,19 +17,17 @@ bool    file_is_php(std::string & uri)
     return (false);
 }
 
-std::string Server::treat_post_request(Request & request, Location &location, std::string path, std::string server_directory)
+std::pair<bool, std::string> Server::treat_post_request(Request & request, Location &location, std::string path, std::string server_directory)
 {
     std::string http_response;
 
     if (file_is_php(request.uri)) {
         // generate html and response with php-cgi
-        std::cout << "we need cgi" << std::endl;
-        return (php_cgi(request, server_directory, path));
+        return (std::make_pair(false, php_cgi(request, server_directory, path)));
     }
     else {
         // we need to look for the page in the directory where we are rn
-        return (treat_get_request(request, location, path, server_directory).second);
+        return (treat_get_request(request, location, path, server_directory));
     }
-    return (http_response);
 }
 
