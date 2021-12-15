@@ -50,6 +50,9 @@ std::string							generate_error_page(std::string p_text, std::string code_respo
 std::string							split(std::string &src, std::string delim);
 
 // cgi
+bool                            file_is_php(std::string & uri);
+std::pair<bool, std::string>    internal_server_error();
+int                             fork_cgi_process(int tubes[2], int file_fd, char *cgi_args[3], char *env[13]);
 void                            php_fill_env(Request & request, std::string path, char **env[10]);
 std::pair<bool, std::string>    php_cgi(Request & request, std::string server_directory, std::string path, Location & location);
 std::pair<bool, std::string>    internal_server_error();

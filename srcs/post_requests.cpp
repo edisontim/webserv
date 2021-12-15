@@ -26,7 +26,6 @@ std::pair<bool, std::string> Server::treat_post_request(Request & request, Locat
         return (php_cgi(request, server_directory, path, location));
     }
     else {
-        // we need to look for the page in the directory where we are rn
         return (treat_get_request(request, location, path, server_directory));
     }
 }
