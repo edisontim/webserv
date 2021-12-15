@@ -21,6 +21,9 @@
 #include <map>
 #include <dirent.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <string.h>
+#include "Request.hpp"
 
 
 #define RED "\033[0;31m"
@@ -37,12 +40,16 @@ void								*get_in_addr(struct sockaddr *address);
 std::map<std::string, std::string>	file_extensions_map(void);
 std::string							get_extension(std::map<std::string, std::string> file_extensions, std::string full_path);
 unsigned long						file_byte_dimension(std::string full_path);
-std::string							file_content(std::string full_path);
+std::string							file_content(std::string full_path, int from_php);
 std::string							dt_string(std::string full_path, DT which);
-std::string							get_response(std::string full_path, std::string req_uri, std::string http_v, int status);
+std::string							get_response(std::string full_path, std::string req_uri, std::string http_v, int status, int from_php);
 void								cleanup(int);
 int									found_file(std::string path);
 std::string							generate_error_page(void);
 std::string							split(std::string &src, std::string delim);
+
+// cgi
+void            php_fill_env(Request & request, std::string path, char **env[10]);
+std::string     php_cgi(Request & request, std::string server_directory, std::string path);
 
 #endif

@@ -178,14 +178,11 @@ int Server::poll_fds(void)
 				//this is normally the first word of our request. This means the type : GET, POST, DELETE
 				//no error was detected so the data received is valid
 				//parse the raw data we got into a request object
+				buff[nbytes] = '\0';
 				Request	request(buff);
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
-					continue ;
-				
-				if (!request.type.compare("POST"))
-					std::cout << "Got POST request" << std::endl;
-				
+					continue ;				
 
 				// We need to parse the request to get the hostname!!!
 				std::string hostname = request.headers["Host"];
@@ -291,7 +288,10 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
 
 	if (location.location_map[req.type] != "true")
-		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405)));
+	{	
+		std::cout << location.location_map["GET"] << std::endl;
+		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405, 0)));
+	}
 
 	if (location.location_map["return"].length() != 0)
 	{
@@ -299,9 +299,9 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		int status = atoi(split(return_cpy, " ").c_str());
 		std::string path = split(return_cpy, " ");
 		if (status >= 400 && status < 500)
-			return (std::make_pair(true, get_response(path, req.uri, req.protocol, status)));
+			return (std::make_pair(true, get_response(path, req.uri, req.protocol, status, 0)));
 		else if (status >= 300 && status < 400)
-			return (std::make_pair(false, get_response(path, path, req.protocol, status)));
+			return (std::make_pair(false, get_response(path, path, req.protocol, status, 0)));
 	}
 
 	if (req.uri.back() == '/') //if it's a directory
@@ -309,9 +309,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
-		{
-			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1)));
-		}
+			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
 	}
 	else
 	{
@@ -320,7 +318,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 		{
 			if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
 			{
-				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301)));
+				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301, 0)));
 			}
 		}
 	}
@@ -335,13 +333,14 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 			return (std::make_pair(true, generate_error_page()));
 		else
 		{
-			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404)));
+			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404, 0)));
 		}
 	}
 
+
 	//we are getting a GET request on server
 	if (req.type == "POST")
-		this->treat_post_request(req, location, path, server_directory);
+		return (std::make_pair(false, this->treat_post_request(req, location, path, server_directory)));
 
 	if (req.type == "GET")
 		return (treat_get_request(req, location, path, server_directory));

@@ -126,17 +126,29 @@ unsigned long file_byte_dimension(std::string full_path)
 }
 
 //return content of HTML_FILE as a std::string
-std::string file_content(std::string full_path)
+std::string file_content(std::string full_path, int from_php)
 {
 	//create an input file stream to read our file and put it in our buffer
+	std::cout << full_path << std::endl;
 	std::ifstream content(full_path);
 	stringstream buffer;
-	buffer << content.rdbuf();
-	//return the buffer to string to have all our file in a string. 
-	//Careful if it's a binary file ! There might be some \0 inside it 
-	//so when working with char * this might mean there will be undefined behaviour, 
-	//for example ft_strlen will stop at the first \0 encountered
-	return (buffer.str());
+
+	std::string	line;
+	std::string	parsed_php = "";
+
+	if (!from_php) {
+		buffer << content.rdbuf();
+		return (buffer.str());
+	}
+	else {
+		std::getline(content, line);
+		while (line != "\r") {
+			std::getline(content, line);
+		}
+		while (std::getline(content, line))
+			parsed_php += line + "\n";
+		return (parsed_php); 
+	}
 }
 
 std::string dt_string(std::string full_path, DT which)
@@ -160,7 +172,7 @@ std::string dt_string(std::string full_path, DT which)
 	return (buff);
 }
 
-std::string get_response(std::string path, std::string req_uri, std::string http_v, int status)
+std::string get_response(std::string path, std::string req_uri, std::string http_v, int status, int from_php)
 {
 	//starts with HTTP/1.1 or HTTP/1.0
 	std::string response;
@@ -170,7 +182,6 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		response = http_v;
 	std::string body;
 	std::string extension;
-
 
 	// response status line
 	if (status == 200)
@@ -246,7 +257,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	{
 		//get content of HTML file
 		// response += "Accept-Ranges: bytes\r\n";
-		body = file_content(path);
+		body = file_content(path, from_php);
 	}
 	if (body == "")
 		return (std::string());

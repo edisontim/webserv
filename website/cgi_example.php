@@ -1,10 +1,9 @@
-<html>
-<body>
-    <?php
-        $var = "salut a toutes et a tous c'est diablox9 et aujourd'hui on se retrouve pour une petite video sur modern warfare 2";
-        print $var;
-        print "<br>";
-        print "voila c'etait du php";
-    ?>
-</body>
-</html>
+<?php
+    print("<html>\n");
+    print("<body>\n");
+    print "WOWSIES !! You chose ";
+    print $_POST["food-choice"];
+    print ", that's brilliant !\n";
+    print("</body>\n");
+    print("</html>\n");
+?>
