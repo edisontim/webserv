@@ -5,3 +5,4 @@ webserv
 *.o
 srcs/*.o
 webserv.conf
+cgi_output.html
