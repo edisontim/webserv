@@ -104,11 +104,62 @@ int Server::send_all(int fd, std::string http_response, int *len)
 	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
 }
 
+void	Server::receive_http_data(int i)
+{
+	char		buff[10];
+	std::string	full_request;
+	int			nbytes;
+	int			find;
+	Request		tmp_request;
+
+	while (1)
+	{
+		nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
+		if (nbytes < 0) {
+			std::cout << "RECV ERROR LOOP 1";
+			exit(0);
+		}
+		buff[nbytes] = '\0';
+		full_request += buff;
+		// std::cout << "===FULL_REQUEST===" << std::endl;
+		// std::cout << full_request << std::endl;
+		memset(buff, 0, sizeof(buff));
+		find = full_request.find("\r\n\r\n");
+		if (find >= 0) {
+			tmp_request.fill_object(full_request);
+			break;
+		}
+	}
+	// we now got a tmp_request with partial or no data at all
+
+	long int					to_read;
+	std::stringstream	ss_content_length(tmp_request.headers["Content-Length"]);
+	unsigned int		content_length = 0;
+
+	ss_content_length >> content_length;
+	to_read = content_length - tmp_request.data.size();
+	while (tmp_request.type == "POST" && to_read > 0)
+	{
+		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+		if (nbytes < 0) {
+			std::cout << "RECV ERROR LOOP 2" << std::endl;
+			exit(0);
+		}
+		// buff[nbytes] = '\0';
+		tmp_request.data += std::string(buff, nbytes);
+		memset(buff, 0, sizeof(buff));
+		to_read -= nbytes;
+	}
+	if (content_length == tmp_request.data.size())
+		std::cout << "SUCCESS" << std::endl;
+	int file = open("./pascorrompu.jpg", O_CREAT | O_RDWR | O_TRUNC);
+	write(file, tmp_request.data.c_str(), tmp_request.data.size());
+}
 
 int Server::poll_fds(void)
 {
 	//buffer to hold the data we receive from an incoming connection
-	char buff[512];
+	// char buff[512];
 
 	//buffer to hold the ip of our incoming connection
 	char remote_ip[INET6_ADDRSTRLEN];
@@ -153,210 +204,237 @@ int Server::poll_fds(void)
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
-				std::string	full_request = "";
-				int nbytes = 1;
-				int	find;
+				receive_http_data(i);
+				exit(0);
+			}
+		}
+		i++;
+	}
+	return (0);
+}
+				// std::string	full_request;
+				// int nbytes = 1;
+				// int	find;
+				// Request	tmp_request;
 
-				while (nbytes > 0)
-				{
-					nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
-					buff[sizeof(buff) - 1] = '\0';
-					full_request += buff;
-					find = full_request.find("\r\n\r\n");
-					if (find >= 0)
-						break;
-					memset(buff, 0, sizeof(buff));
-				}
+				// while (1)
+				// {
+				// 	nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
+				// 	buff[sizeof(buff) - 1] = '\0';
+				// 	full_request += buff;
+				// 	find = full_request.find("\r\n\r\n");
+				// 	memset(buff, 0, sizeof(buff));
+				// 	if (find >= 0) {
+				// 		tmp_request.fill_object(full_request);
+				// 		break;
+				// 	}
+				// }
+				// // we now got a tmp_request with only partial or no data at all
+
+				// int					to_read;
+				// std::stringstream   ss_content_length(tmp_request.headers["Content-Length"]);
+    			// unsigned int        content_length = 0;
+
+				// ss_content_length >> content_length;
+				// to_read = content_length - tmp_request.data.size();
+				// while (tmp_request.type == "POST" && to_read > 0)
+				// {
+				// 	nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
+				// 	buff[nbytes] = '\0';
+				// 	tmp_request.data += buff;
+				// 	if (nbytes < (int)sizeof(buff))
+				// 		break;
+				// 	to_read -= nbytes;
+				// 	memset(buff, 0, sizeof(buff));
+				// 	if (to_read <= 0)
+				// 		break;
+				// }
+				// if (tmp_request.data.size() == content_length)
+				// 	std::cout << "All the data was received" << std::endl;
 				//error checking for recv (connection closed or error)
-				if (nbytes <= 0)
-				{
-					if (nbytes == 0) //connection closed
-					{
-						std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
-					}
-					if (nbytes < 0) {
-						std::cout << "ERROR < 0" << std::endl;
-						std::cerr << strerror(errno) << std::endl;
-					}
-					close(pfds[i].fd);
-					pfds.erase(pfds.begin() + i);
-					continue ;
-				}
-				
+				// if (nbytes <= 0)
+				// {
+				// 	if (nbytes == 0) //connection closed
+				// 	{
+				// 		std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
+				// 	}
+				// 	if (nbytes < 0) {
+				// 		std::cout << "ERROR < 0" << std::endl;
+				// 		std::cerr << strerror(errno) << std::endl;
+				// 	}
+				// 	close(pfds[i].fd);
+				// 	pfds.erase(pfds.begin() + i);
+				// 	continue ;
+				// }
 				//no error was detected so the data received is valid
 
 				//parse the raw data we got into a request object
 
 				// buff[nbytes] = '\0';
-				Request	request(full_request);
-				std::cout << "data: " << request.data << std::endl;
+				// Request	request(full_request);
 
-				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
-				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
-					continue ;				
+// 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
+// 					continue ;				
 
-				// We need to parse the request to get the hostname!!!
-				std::string hostname = request.headers["Host"];
-				std::pair<bool, std::string> request_treated;
-				std::string http_response = "";
+// 				// We need to parse the request to get the hostname!!!
+// 				std::string hostname = request.headers["Host"];
+// 				std::pair<bool, std::string> request_treated;
+// 				std::string http_response = "";
 
-				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
-				{
-					//if we find a virtual server whose server_name directives matches with the Host field
-					// of our request, that's the one that should treat it
-					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
-					{
-						request_treated = get_v_servers()[j].treat_request(request, nbytes);
-						http_response = request_treated.second;
-						break;
-					}
-				}
+// 				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
+// 				{
+// 					//if we find a virtual server whose server_name directives matches with the Host field
+// 					// of our request, that's the one that should treat it
+// 					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
+// 					{
+// 						request_treated = get_v_servers()[j].treat_request(request, nbytes);
+// 						http_response = request_treated.second;
+// 						break;
+// 					}
+// 				}
 
-				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
-				// of the requested page --> look in the locations directives
-				if (http_response.empty())
-				{
-					request_treated = this->treat_request(request, nbytes);
-					http_response = request_treated.second;
-				}
-				if (pfds[i].revents & POLLOUT)
-				{
-					int len = http_response.length();
-					int bytes_sent = send_all(pfds[i].fd, http_response, &len);
-					//number of bytes send differs from the size of the string, that means we had a problem with send()
-					if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
-					{
-						if (bytes_sent == -1)
-							std::cerr << "error on send" << std::endl;
-						else
-							std::cerr << "send didn't write all the package" << std::endl;
-						close_connection(i);
-					}
-					//not sure these are necessary if recv and send worked
-					if (!request_treated.first)
-						close_connection(i);
-				}
+// 				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
+// 				// of the requested page --> look in the locations directives
+// 				if (http_response.empty())
+// 				{
+// 					request_treated = this->treat_request(request, nbytes);
+// 					http_response = request_treated.second;
+// 				}
+// 				if (pfds[i].revents & POLLOUT)
+// 				{
+// 					int len = http_response.length();
+// 					int bytes_sent = send_all(pfds[i].fd, http_response, &len);
+// 					//number of bytes send differs from the size of the string, that means we had a problem with send()
+// 					if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
+// 					{
+// 						if (bytes_sent == -1)
+// 							std::cerr << "error on send" << std::endl;
+// 						else
+// 							std::cerr << "send didn't write all the package" << std::endl;
+// 						close_connection(i);
+// 					}
+// 					//not sure these are necessary if recv and send worked
+// 					if (!request_treated.first)
+// 						close_connection(i);
+// 				}
 
-			}
-		}
-		i++;
-	}
-	return (1);
-}
+			
+		
+// 		i++;
+// 	}
+// 	return (1);
 
-int	Server::close_connection(int fd_index)
-{
-	shutdown(pfds[fd_index].fd, SHUT_RDWR);
-	close(pfds[fd_index].fd);
-	pfds.erase(pfds.begin() + fd_index);
-	return (1);
-}
 
-std::pair<bool, Location> Server::match_location(std::string requested_page)
-{
+// int	Server::close_connection(int fd_index)
+// {
+// 	shutdown(pfds[fd_index].fd, SHUT_RDWR);
+// 	close(pfds[fd_index].fd);
+// 	pfds.erase(pfds.begin() + fd_index);
+// 	return (1);
+// }
 
-	for (unsigned int i = 0; i < get_rules().locations.size(); i++)
-	{
-		std::string location_url = this->get_rules().locations[i].prefix;
-		//looks for a location block for which the requested page url has a prefix that matches with a location
-		if (!requested_page.rfind(location_url, 0))
-			return (std::make_pair(true, this->get_rules().locations[i]));
-	}
-	return (std::make_pair(false, Location()));
-}
+// std::pair<bool, Location> Server::match_location(std::string requested_page)
+// {
 
-//false if response is a redirect 301, true otherwise
-std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
-{
-	(void)nbytes;
+// 	for (unsigned int i = 0; i < get_rules().locations.size(); i++)
+// 	{
+// 		std::string location_url = this->get_rules().locations[i].prefix;
+// 		//looks for a location block for which the requested page url has a prefix that matches with a location
+// 		if (!requested_page.rfind(location_url, 0))
+// 			return (std::make_pair(true, this->get_rules().locations[i]));
+// 	}
+// 	return (std::make_pair(false, Location()));
+// }
 
-	std::string full_path;
-	std::string path;
-	Location location;
-	std::string server_directory;
+// //false if response is a redirect 301, true otherwise
+// std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
+// {
+// 	(void)nbytes;
 
-	// see if the page requested matches a location in our rules
-	std::pair<bool, Location> found = match_location(req.uri);
+// 	std::string full_path;
+// 	std::string path;
+// 	Location location;
+// 	std::string server_directory;
 
-	//page requested is a page included in a location block
-	location = found.second;
+// 	// see if the page requested matches a location in our rules
+// 	std::pair<bool, Location> found = match_location(req.uri);
+
+// 	//page requested is a page included in a location block
+// 	location = found.second;
 	
 
-	//our set of rules from the location match
+// 	//our set of rules from the location match
 
-	//our file path inside our server's directories (file that we actually need to open)
-	path = location.location_map["root"];
+// 	//our file path inside our server's directories (file that we actually need to open)
+// 	path = location.location_map["root"];
 
-	//add to our path a substring of our requested page beginning from the point our 
-	//location prefix ends. 
-	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
-	// then we need to look were the url continues, and add that to the back of our root
-	path += req.uri.substr(location.prefix.length());
+// 	//add to our path a substring of our requested page beginning from the point our 
+// 	//location prefix ends. 
+// 	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
+// 	// then we need to look were the url continues, and add that to the back of our root
+// 	path += req.uri.substr(location.prefix.length());
 
-	server_directory = path;
+// 	server_directory = path;
 
-	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
+// 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
 
-	if (location.location_map[req.type] != "true")
-		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405, 0)));
+// 	if (location.location_map[req.type] != "true")
+// 		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405, 0)));
 
-	if (location.location_map["return"].length() != 0)
-	{
-		std::string return_cpy = location.location_map["return"];
-		int status = atoi(split(return_cpy, " ").c_str());
-		std::string path = split(return_cpy, " ");
-		if (status >= 400 && status < 500)
-			return (std::make_pair(true, get_response(path, req.uri, req.protocol, status, 0)));
-		else if (status >= 300 && status < 400)
-			return (std::make_pair(false, get_response(path, path, req.protocol, status, 0)));
-	}
+// 	if (location.location_map["return"].length() != 0)
+// 	{
+// 		std::string return_cpy = location.location_map["return"];
+// 		int status = atoi(split(return_cpy, " ").c_str());
+// 		std::string path = split(return_cpy, " ");
+// 		if (status >= 400 && status < 500)
+// 			return (std::make_pair(true, get_response(path, req.uri, req.protocol, status, 0)));
+// 		else if (status >= 300 && status < 400)
+// 			return (std::make_pair(false, get_response(path, path, req.protocol, status, 0)));
+// 	}
 
-	if (req.uri.back() == '/') //if it's a directory
-	{
+// 	if (req.uri.back() == '/') //if it's a directory
+// 	{
 		
-		path += location.location_map["index"];
-		if (location.location_map["autoindex"] == "on" && !found_file(path))
-			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
-	}
-	else
-	{
-		struct stat s;
-		if (!stat(path.c_str(), &s))
-		{
-			if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
-			{
-				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301, 0)));
-			}
-		}
-	}
-	//if we got to here, we either have : 
-	//	1. the path was a directory so we added the index directive to it
-	//	2. the path is a file, we don't know if it's valid or not yet
-	//check here for 404 file not found
-	std::cout << "File path : " << path << std::boolalpha << std::endl;
-	std::cout << "File exists : " << found_file(path) << std::endl << std::endl;
-	if (!found_file(path))
-	{
+// 		path += location.location_map["index"];
+// 		if (location.location_map["autoindex"] == "on" && !found_file(path))
+// 			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
+// 	}
+// 	else
+// 	{
+// 		struct stat s;
+// 		if (!stat(path.c_str(), &s))
+// 		{
+// 			if (s.st_mode & S_IFDIR) //path is a directory but not ended by a '/'
+// 			{
+// 				return (std::make_pair(false, get_response(path, req.uri + "/", req.protocol, 301, 0)));
+// 			}
+// 		}
+// 	}
+// 	//if we got to here, we either have : 
+// 	//	1. the path was a directory so we added the index directive to it
+// 	//	2. the path is a file, we don't know if it's valid or not yet
+// 	//check here for 404 file not found
+// 	if (!found_file(path))
+// 	{
 
-		path = server_directory + location.location_map["error_page"];
-		if (!found_file(path))
-			return (std::make_pair(true, generate_error_page("Default error page", "404 Page not found")));
-		else
-		{
-			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404, 0)));
-		}
-	}
+// 		path = server_directory + location.location_map["error_page"];
+// 		if (!found_file(path))
+// 			return (std::make_pair(true, generate_error_page("Default error page", "404 Page not found")));
+// 		else
+// 		{
+// 			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404, 0)));
+// 		}
+// 	}
 
 
-	//we are getting a GET request on server
-	if (req.type == "POST")
-		return (this->treat_post_request(req, location, path, server_directory));
+// 	//we are getting a GET request on server
+// 	if (req.type == "POST")
+// 		return (this->treat_post_request(req, location, path, server_directory));
 
-	if (req.type == "GET")
-		return (treat_get_request(req, location, path, server_directory));
+// 	if (req.type == "GET")
+// 		return (treat_get_request(req, location, path, server_directory));
 
-	if (req.type == "DELETE")
-		return (std::make_pair(true, treat_delete_request(path)));
-	//remove, just present for compiling
-	return (std::make_pair(false, "Don't send giberrish to our server"));
-}
+// 	if (req.type == "DELETE")
+// 		return (std::make_pair(true, treat_delete_request(path)));
+// 	//remove, just present for compiling
+// 	return (std::make_pair(false, "Don't send giberrish to our server"));

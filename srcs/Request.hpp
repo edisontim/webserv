@@ -8,9 +8,6 @@
 
 class Request
 {
-    private:
-
-        Request();
 
     public:
 
@@ -21,9 +18,11 @@ class Request
         std::string                         data;
 		std::string							query_string;
 
+        Request();
         Request(std::string request);
         ~Request();
         void    print();
+        void    fill_object(std::string full_request);
 };
 
 #endif

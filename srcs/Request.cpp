@@ -1,5 +1,7 @@
 #include "Request.hpp"
 
+Request::Request() {}
+
 Request::Request(std::string request)
 {
     std::istringstream  iss(request);
@@ -55,4 +57,11 @@ void    Request::print()
     }
     if (this->type == "POST")
         std::cout << std::endl << "DATA: " << this->data << std::endl;
+}
+
+void    Request::fill_object(std::string full_request)
+{
+    Request new_request(full_request);
+
+    *this = new_request;
 }

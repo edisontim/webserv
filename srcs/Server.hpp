@@ -96,6 +96,7 @@ class Server
 		std::string						treat_delete_request(std::string path);
 		int 							send_all(int fd, std::string http_response, int *len);
 
+		void	receive_http_data(int i);
 
 		
 };
