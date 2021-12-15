@@ -53,10 +53,14 @@
 //
 
 //TODO
-// careful for the correction pdf, we need to poll for both read and write at the same time !!
-// WHY AM I CREATING TWO SOCKETS ?
-// set the sockets to non-blocking
-// Catch the CTRL-C (SIGINT), 
+
+
+char G_QUIT = 0;
+
+void cleanup(int)
+{
+	G_QUIT = 1;
+}
 
 int main(int argc, char *argv[])
 {
@@ -78,53 +82,48 @@ int main(int argc, char *argv[])
 	// or, if not provided, the default config file wasn't openable, return an error
 	
 
-	if (argc == 2)
+	if (argc == 2 || argc == 1)
 	{
-		if (!conf_file(argv[1], servers))
+		int a;
+		std::string conf_path;
+		if (argc == 2)
+			conf_path = argv[1];
+		else
+			conf_path = "conf.d/webserv.conf";
+		a = conf_file(conf_path, servers);
+		if (a <= 0)
 		{
-			std::cerr << "Config file not found" << std::endl;
-			return (1);
-		}
-	}
-	else if (argc == 1)
-	{
-		if (!conf_file("conf.d/webserv.conf", servers))
-		{
-			std::cerr << "Default config file not found and none was provided" << std::endl;
+			if (a == -1)
+				std::cerr << RED << "Config file is empty" << NOCOLOR << std::endl;
+			else
+				std::cerr << RED << "Config file not found" << NOCOLOR << std::endl;
 			return (1);
 		}
 	}
 	else
 	{
-		std::cerr << "Wrong number of arguments" << std::endl;
+		std::cerr << RED << BOLD << "Wrong number of arguments" << NOCOLOR << NORMAL << std::endl;
 		return (1);
 	}
 
-	i = 0;
-	while (i < servers.size())
+	if (servers.empty())
 	{
-	//get and print own IPv4 address
-		char ip_string[255];
-		struct hostent *host;
-
-		//this gets the official name of the host machine running the program
-		gethostname(ip_string, INET6_ADDRSTRLEN);
-
-		// sends back a pointer to hostent struct, by casting the h_addr (which is a define to the first element of the h_addr_list) to an in_addr* and dereferencing that we can get an ip addr in the form of an in_addr
-		// this is a valid method but I think getaddrinfo with hints.ai_flags set to AI_PASSIVE to just use our own IP is easier
-		host = gethostbyname(ip_string);
-		// std::cout << "Users can connect to <" << inet_ntoa(*((struct in_addr *)host->h_addr)) << "> on port <" << servers[i]->get_sock().get_service() << ">"<< std::endl;
-		// std::cout << "socket fd : " << servers[i]->get_pfds()[0].fd << std::endl;
-		i++;
+		std::cerr << RED << "Configuration file holds no valid server configuration" << NOCOLOR << std::endl;
+		return (1);
 	}
 
-	while (1)
-	{
-		i = 0;
-		while (i < servers.size())
-		{
-			servers[i]->poll_fds();
-			i++;
-		}
-	}
+	(void)i;
+	// while (1)
+	// {
+	// 	i = 0;
+	// 	while (i < servers.size())
+	// 	{
+	// 		servers[i]->poll_fds();
+	// 		i++;
+	// 	}
+	// 	if (G_QUIT == 1)
+	// 		break;
+	// }
+	clean_exit(servers);
+	return (0);
 }

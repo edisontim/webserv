@@ -178,11 +178,10 @@ int Server::poll_fds(void)
 				//no error was detected so the data received is valid
 
 				//parse the raw data we got into a request object
+				buff[nbytes] = '\0';
 
-				// buff[nbytes] = '\0';
 				Request	request(buff);
 
-				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				
 
@@ -283,7 +282,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 	// then we need to look were the url continues, and add that to the back of our root
 	path += req.uri.substr(location.prefix.length());
-
+	std::cout << path << std::endl;
 	server_directory = path;
 
 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
@@ -304,7 +303,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 
 	if (req.uri.back() == '/') //if it's a directory
 	{
-		
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
 			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
@@ -324,8 +322,8 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	//	1. the path was a directory so we added the index directive to it
 	//	2. the path is a file, we don't know if it's valid or not yet
 	//check here for 404 file not found
-	std::cout << "File path : " << path << std::boolalpha << std::endl;
-	std::cout << "File exists : " << found_file(path) << std::endl << std::endl;
+
+
 	if (!found_file(path))
 	{
 
