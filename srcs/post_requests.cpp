@@ -23,7 +23,7 @@ std::pair<bool, std::string> Server::treat_post_request(Request & request, Locat
 
     if (file_is_php(request.uri)) {
         // generate html and response with php-cgi
-        return (std::make_pair(false, php_cgi(request, server_directory, path)));
+        return (php_cgi(request, server_directory, path, location));
     }
     else {
         // we need to look for the page in the directory where we are rn

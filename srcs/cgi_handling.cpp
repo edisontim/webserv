@@ -30,7 +30,13 @@ void    php_fill_env(Request & request, std::string path, char *env[13])
     env[i] = NULL;
 }
 
-std::string    php_cgi(Request & request, std::string server_directory, std::string path)
+std::pair<bool, std::string>    internal_server_error()
+{
+    std::string server_error = "500 Internal Server Error";
+    return (std::make_pair(true, generate_error_page(server_error, server_error)));
+}
+
+std::pair<bool, std::string>    php_cgi(Request & request, std::string server_directory, std::string path, Location & location)
 {
     char                *cgi_args[3];
     int                 tubes[2];
@@ -40,9 +46,9 @@ std::string    php_cgi(Request & request, std::string server_directory, std::str
     std::stringstream   ss_content_length(request.headers["Content-Length"]);
     unsigned int        content_length = 0;
     std::string         cgi_path;
+    int                 status = 0;
 
-    // change !! if value is empty, then error (cgi disabled)
-    cgi_path = "/Users/amilis/Documents/homebrew/Cellar/php@7.4/7.4.26_1/bin/php-cgi";
+    cgi_path = location.location_map["cgi_path"];
 
     cgi_args[0] = new char[cgi_path.size() + 1];
     strcpy(cgi_args[0], cgi_path.c_str());
@@ -61,14 +67,26 @@ std::string    php_cgi(Request & request, std::string server_directory, std::str
 
 
     cgi_pid = fork();
+    if (cgi_pid == -1)
+        return (internal_server_error());
     if (cgi_pid == 0)
     {
         close(tubes[1]);
-        dup2(tubes[0], 0);
-        dup2(fd, 1);
-        execve(cgi_args[0], cgi_args, env);
+        if (dup2(tubes[0], 0) == -1 || dup2(fd, 1) == -1)
+            exit(EXIT_FAILURE);
+        if (execve(cgi_args[0], cgi_args, env) == -1)
+            exit(EXIT_FAILURE);
     }
-    waitpid(cgi_pid, NULL, 0);
+    waitpid(cgi_pid, &status, 0);
+
+
+    if (WIFEXITED(status))
+    {
+        const int es = WEXITSTATUS(status);
+        if (es == EXIT_FAILURE) // serve 500 page
+            return (internal_server_error());
+    }
+
 
     close(tubes[0]);
     close(tubes[1]);
@@ -80,5 +98,5 @@ std::string    php_cgi(Request & request, std::string server_directory, std::str
     close(fd);
     
     std::string http_response = get_response(cgi_output_path, request.uri, request.protocol, 200, 1);
-    return (http_response);
+    return (std::make_pair(false, http_response));
 }

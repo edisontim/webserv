@@ -1,6 +1,6 @@
 CXX			= clang++
 
-CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -pedantic
+CXXFLAGS	= -Wall -Wextra -Werror -std=c++98 -pedantic -g -fsanitize=address
 
 SRCS_PATH	= srcs
 

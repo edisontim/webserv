@@ -19,7 +19,7 @@ std::string split(std::string &src, std::string delim)
 	return (token);
 }
 
-std::string generate_error_page(void)
+std::string generate_error_page(std::string p_text, std::string code_response)
 {
 	std::string body = 
 "<!doctype html>\
@@ -28,11 +28,11 @@ std::string generate_error_page(void)
 <title>Nope</title>\
 </head>\
 <body>\
-<p>Default error page</p>\
+<p>" + p_text + "</p>\
 </body>\
 </html>";
 	std::string headers = 
-"HTTP/1.1 404 Page not found\r\n\
+"HTTP/1.1 " + code_response + "\r\n\
 Server: webserv\r\n\
 Content-type: text/html\r\n\
 Content-length: " + itoa(body.length());

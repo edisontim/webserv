@@ -327,7 +327,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	{
 		path = server_directory + location.location_map["error_page"];
 		if (!found_file(path))
-			return (std::make_pair(true, generate_error_page()));
+			return (std::make_pair(true, generate_error_page("Default error page", "404 Page not found")));
 		else
 		{
 			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404, 0)));
