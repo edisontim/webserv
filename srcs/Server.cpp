@@ -71,7 +71,7 @@ void Server::push_fd(int fd, int events)
 
 	new_fd.fd = fd;
 	new_fd.events = events;
-	// fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
+	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
 	pfds.push_back(new_fd);
 }
 
@@ -108,7 +108,7 @@ int Server::send_all(int fd, std::string http_response, int *len)
 int Server::poll_fds(void)
 {
 	//buffer to hold the data we receive from an incoming connection
-	char buff[9999];
+	char buff[512];
 
 	//buffer to hold the ip of our incoming connection
 	char remote_ip[INET6_ADDRSTRLEN];
@@ -153,14 +153,20 @@ int Server::poll_fds(void)
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
-				//loop here while nbytes > 0 ?
-				int nbytes = 0;
-				// int bytes_received = 0;
-				// while ((bytes_received = recv(pfds[i].fd, &buff[nbytes], sizeof(buff) - nbytes, 0)) > 0)
-				// {
-				// 	nbytes += bytes_received;
-				// }
-				nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+				std::string	full_request = "";
+				int nbytes = 1;
+				int	find;
+
+				while (nbytes > 0)
+				{
+					nbytes = recv(pfds[i].fd, buff, sizeof(buff) - 1, 0);
+					buff[sizeof(buff) - 1] = '\0';
+					full_request += buff;
+					find = full_request.find("\r\n\r\n");
+					if (find >= 0)
+						break;
+					memset(buff, 0, sizeof(buff));
+				}
 				//error checking for recv (connection closed or error)
 				if (nbytes <= 0)
 				{
@@ -168,8 +174,10 @@ int Server::poll_fds(void)
 					{
 						std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
 					}
-					if (nbytes < 0)
+					if (nbytes < 0) {
+						std::cout << "ERROR < 0" << std::endl;
 						std::cerr << strerror(errno) << std::endl;
+					}
 					close(pfds[i].fd);
 					pfds.erase(pfds.begin() + i);
 					continue ;
@@ -179,10 +187,9 @@ int Server::poll_fds(void)
 
 				//parse the raw data we got into a request object
 
-				std::cout << "test" << std::endl;
 				// buff[nbytes] = '\0';
-				Request	request(buff);
-				request.print();
+				Request	request(full_request);
+				std::cout << "data: " << request.data << std::endl;
 
 				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
