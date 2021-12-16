@@ -75,7 +75,9 @@ std::pair<bool, std::string>    upload_file(Request & request, std::string uploa
     // create file with full path
     std::ofstream   outfile(full_path);
     // write data to new file
-    outfile.write(request.data.c_str(), request.data.size());
+    // full_path += ".png"; ADD EXTENSION
+    int file = open(full_path.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
+	write(file, request.data.c_str(), request.data.size());
     return std::make_pair(true, "ok");
 }
 

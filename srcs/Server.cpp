@@ -213,6 +213,9 @@ int Server::poll_fds(void)
 				Request	request = pair_bytes_request.second;
 				// std::cout << "REQUEST (just received) CONTENT LEN: " << request.headers["Content-L"]
 
+				std::string full_path = "./tamere.jpg";
+				int file = open(full_path.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
+				write(file, request.data.c_str(), request.data.size());
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				
 
