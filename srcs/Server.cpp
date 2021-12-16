@@ -115,12 +115,10 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 	while (1)
 	{
 		nbytes = recv(pfds[1].fd, buff, sizeof(buff), 0);
-		if (nbytes == 0) {
-			std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
-			break;
-		}
+		if (nbytes == 0)
+			return (std::make_pair(nbytes, request));
 		if (nbytes < 0)
-			return (std::make_pair(false, request));
+			return (std::make_pair(nbytes, request));
 		full_request += std::string(buff, nbytes);
 		memset(buff, 0, sizeof(buff));
 		find = full_request.find("\r\n\r\n");
@@ -142,12 +140,10 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 		while (to_read > 0)
 		{
 			nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
-			if (nbytes == 0) {
-				std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
-				break;
-			}
+			if (nbytes == 0)
+				return (std::make_pair(nbytes, request));
 			if (nbytes < 0)
-				return (std::make_pair(false, request));
+				return (std::make_pair(nbytes, request));
 			request.data += std::string(buff, nbytes);
 			memset(buff, 0, sizeof(buff));
 			to_read -= nbytes;
@@ -215,9 +211,7 @@ int Server::poll_fds(void)
 				}
 
 				Request	request = pair_bytes_request.second;
-				request.print();
 
-				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				
 
@@ -357,8 +351,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 	//	1. the path was a directory so we added the index directive to it
 	//	2. the path is a file, we don't know if it's valid or not yet
 	//check here for 404 file not found
-	std::cout << "File path : " << path << std::boolalpha << std::endl;
-	std::cout << "File exists : " << found_file(path) << std::endl << std::endl;
 	if (!found_file(path))
 	{
 
