@@ -114,7 +114,7 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 
 	while (1)
 	{
-		nbytes = recv(pfds[1].fd, buff, sizeof(buff), 0);
+		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 		if (nbytes == 0)
 			return (std::make_pair(nbytes, request));
 		if (nbytes < 0)
@@ -211,6 +211,7 @@ int Server::poll_fds(void)
 				}
 
 				Request	request = pair_bytes_request.second;
+				// std::cout << "REQUEST (just received) CONTENT LEN: " << request.headers["Content-L"]
 
 				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 					continue ;				

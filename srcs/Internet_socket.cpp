@@ -55,7 +55,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	//to try to get a socket a	nd bind it
 	for (iter = res; iter != NULL; iter = iter->ai_next)
 	{
-		socket_fd = socket(iter->ai_family, iter->ai_socktype, hints.ai_protocol);
+		socket_fd = socket(iter->ai_family, iter->ai_socktype, iter->ai_protocol);
 		if (socket_fd < 0)
 			continue;
 

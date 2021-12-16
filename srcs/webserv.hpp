@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string>
 #include <unistd.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -23,6 +22,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
+#include <algorithm>
+#include <cctype>
 #include "Request.hpp"
 #include "Location.hpp"
 
@@ -60,5 +61,11 @@ void                            php_fill_env(Request & request, std::string path
 std::pair<bool, std::string>    php_cgi(Request & request, std::string server_directory, std::string path, Location & location);
 std::pair<bool, std::string>    internal_server_error();
 void 							clean_exit(std::vector<Server *> &servers);
+
+// upload files
+std::pair<bool, std::string>    forbidden_page();
+std::pair<bool, std::string>    request_entity_too_large();
+unsigned int                    get_max_body_size(Location & location);
+std::pair<bool, std::string>    check_upload_file(Request & request, Location & location);
 
 #endif
