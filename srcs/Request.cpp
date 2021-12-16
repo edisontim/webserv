@@ -4,17 +4,17 @@ Request::Request() {}
 
 Request::Request(std::string request)
 {
-    std::istringstream  iss(request);
+    std::stringstream  ss(request);
     std::string         line;
-    std::istringstream  line_stream;
+    std::stringstream  line_stream;
     std::string         header_key;
     std::string         header_value;
 
-    std::getline(iss, line);
+    std::getline(ss, line);
     line_stream.str(line);
     line_stream >> this->type >> this->uri >> this->protocol;
 
-    while (std::getline(iss, line))
+    while (std::getline(ss, line))
     {
         if (line == "\r")
             break;
@@ -25,10 +25,7 @@ Request::Request(std::string request)
     }
     if (this->type == "POST")
     {
-        // std::getline(iss, line);
-        iss >> this->data;
-        // this->data = line;
-        // std::cout << "data: " << this->data << std::endl;
+        this->data = request.substr(request.find("\r\n\r\n") + 4);
     }
 	
 	//get correct hostname without ip following

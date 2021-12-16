@@ -5,7 +5,7 @@ port = 8080
 
 mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 mysock.connect((ip, port))
-fd = open("./website1/404.jpg", "rb")
+fd = open("./upload/favicon.png", "rb")
 
 # data_to_send = 'fkdafjdsa;fdks;fkjasdfdsjkfklsdfksdjkflsjldkflkjdslkflskdfjksdjlkfsjdfjklsdklfjs'.encode()
 data_to_send = fd.read()
