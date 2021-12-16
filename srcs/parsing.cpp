@@ -43,39 +43,7 @@ std::pair<std::string, int> get_location_block(std::string file, int i)
 	return (std::make_pair(file.substr(begin, i - begin), i)); 
 }
 
-//server/location string, index of end of directive
-std::string new_word(std::string block, int i)
-{
-	unsigned int word_begin;
-	while (block[i] && isspace(block[i]))
-		i++;
-	word_begin = i;
-	while (block[i] && !isspace(block[i])  && block[i] != '{' && block[i] != ';')
-		i++;
-	std::string word = block.substr(word_begin, i - word_begin);
-	//if the word is only a { then that means the url for the location wasn't specified
-	if (!word.compare("{"))
-		return (std::string());
-	return (block.substr(word_begin, i - word_begin));
-}
-
-//server/location block string, index of end of directive
-std::string return_directive(std::string block, int i)
-{
-	unsigned int word_begin;
-	while (block[i] && isspace(block[i]))
-		i++;
-	word_begin = i;
-	while (block[i] && block[i] != ';')
-		i++;
-	std::string word = block.substr(word_begin, i - word_begin);
-	//if the word is only a { then that means the url for the location wasn't specified
-	if (!word.compare("{"))
-		return (std::string());
-	return (block.substr(word_begin, i - word_begin));
-}
-
-std::pair<std::string, int> new_word_basic(std::string str, size_t i)
+std::pair<std::string, int> next_word(std::string str, size_t i, bool skip_spaces, const char *skip_chars)
 {
 	size_t k;
 	size_t size;
@@ -86,7 +54,7 @@ std::pair<std::string, int> new_word_basic(std::string str, size_t i)
 	k = i;
 
 	//get ending position of word
-	while (i < str.length() && !isspace(str[i]))
+	while (i < str.length() && (skip_spaces && !isspace(str[i])) && str[i] != skip_chars[0] && str[i] != skip_chars[1])
 		i++;
 
 	size = i - k;
@@ -108,7 +76,7 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 	unsigned int block_end = a.second;
 
 	//sets the url while constructing our empty map of location rules. We need to fill our map
-	Location new_location(new_word(location_string, 0));
+	Location new_location(next_word(location_string, 0, true, "{;").first);
 
 	//if no url was specified, skip that block
 	if (new_location.prefix == "")
@@ -116,7 +84,7 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 
 	while (i < location_string.length())
 	{
-		std::pair<std::string, int> a = new_word_basic(location_string, i);
+		std::pair<std::string, int> a = next_word(location_string, i, true, "\0\0");
 		std::string keyword = a.first;
 		i = a.second;
 
@@ -127,9 +95,9 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 			if (keyword == iter->first)
 			{
 				if (keyword == "return")
-					iter->second = return_directive(location_string, i);
+					iter->second = next_word(location_string, i, false, ";\0").first;
 				else
-					iter->second = new_word(location_string, i);
+					iter->second = next_word(location_string, i, true, "{;").first;
 			}
 			iter++;
 		}
@@ -137,7 +105,6 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 	if (new_location.prefix.back() == '/')
 		new_location.prefix.resize(new_location.prefix.size() - 1);	
 	new_rules.locations.push_back(new_location);
-	display_map(new_location.location_map);
 	return (block_end);
 }
 
@@ -149,7 +116,7 @@ Rules parse_server(std::string &server_block)
 
 	while (server_block[i])
 	{
-		std::pair<std::string, int> a = new_word_basic(server_block, i);
+		std::pair<std::string, int> a = next_word(server_block, i, true, "\0\0");
 		std::string directives_keyword = a.first;
 		i = a.second;
 
@@ -166,8 +133,8 @@ Rules parse_server(std::string &server_block)
 		std::map<std::string, std::string>::iterator iter = new_rules.directives.begin();
 		while (iter != new_rules.directives.end())
 		{
-			if (!directives_keyword.compare(iter->first))
-				iter->second = new_word(server_block, i);
+			if (directives_keyword == iter->first)
+				iter->second = next_word(server_block, i, true, "{;").first;
 			iter++;
 		}
 	}
@@ -181,7 +148,7 @@ int server_keyword(std::string const &file)
 
 	while (i < file.length())
 	{
-		std::pair<std::string, int> a = new_word_basic(file, i);
+		std::pair<std::string, int> a = next_word(file, i, true, "\0\0");
 		std::string keyword = a.first;
 		i = a.second;
 		

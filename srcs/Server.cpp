@@ -282,7 +282,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
 	// if url was /upload/lol/exercices/ and prefix of location was /upload/lol/ rooted to ./
 	// then we need to look were the url continues, and add that to the back of our root
 	path += req.uri.substr(location.prefix.length());
-	std::cout << path << std::endl;
+
 	server_directory = path;
 
 	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);

@@ -112,18 +112,17 @@ int main(int argc, char *argv[])
 		return (1);
 	}
 
-	(void)i;
-	// while (1)
-	// {
-	// 	i = 0;
-	// 	while (i < servers.size())
-	// 	{
-	// 		servers[i]->poll_fds();
-	// 		i++;
-	// 	}
-	// 	if (G_QUIT == 1)
-	// 		break;
-	// }
+	while (1)
+	{
+		i = 0;
+		while (i < servers.size())
+		{
+			servers[i]->poll_fds();
+			i++;
+		}
+		if (G_QUIT == 1)
+			break;
+	}
 	clean_exit(servers);
 	return (0);
 }
