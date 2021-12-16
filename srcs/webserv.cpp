@@ -64,8 +64,9 @@ void cleanup(int)
 
 int main(int argc, char *argv[])
 {
-	unsigned int i;
-
+	unsigned int	i;
+	int				poll_count;
+	
 	//input buffer
 	std::string buff;
 
@@ -73,9 +74,9 @@ int main(int argc, char *argv[])
 	std::vector<Server *> servers;
 
 	//avoid quitting program without being able to cleanup the vector and disconnecting the sockets. Really necessary ?
-	signal(SIGQUIT, SIG_IGN);
-	signal(SIGTSTP, SIG_IGN);
-	signal(SIGINT, &cleanup);
+	// signal(SIGQUIT, SIG_IGN);
+	// signal(SIGTSTP, SIG_IGN);
+	// signal(SIGINT, &cleanup);
 
 	//if we have a path to a configuration file then parse it, otherwise parse the default 
 	//configuration file in conf.d/. If the argument provided wasn't an openable file 
@@ -112,12 +113,31 @@ int main(int argc, char *argv[])
 		return (1);
 	}
 
+	std::vector<struct pollfd> all_pfds;
+
+	fill(servers, all_pfds);
+
 	while (1)
 	{
 		i = 0;
-		while (i < servers.size())
+
+		reset_revents(all_pfds);
+		//poll our vector of fds
+		poll_count = poll(all_pfds.data(), all_pfds.size(), -1);
+		std::cout << poll_count << std::endl;
+		if (poll_count == -1)
 		{
-			servers[i]->poll_fds();
+			std::cerr << "poll error" << std::endl;
+			return (0);
+		}
+
+		while(i < all_pfds.size())
+		{
+			if (all_pfds[i].revents & POLLIN) //one is ready
+			{
+				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
+				servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+			}
 			i++;
 		}
 		if (G_QUIT == 1)

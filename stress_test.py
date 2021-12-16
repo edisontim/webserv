@@ -38,7 +38,7 @@ def child():
 
 
 pids = []
-pid_number = 100
+pid_number = 1000
 
 for i in range(pid_number):
 	try :
@@ -54,5 +54,5 @@ time.sleep(4)
 
 for i in range(pid_number):
 	os.kill(pids[i], signal.SIGUSR1)
-
+	time.sleep(0.001)
 sys.exit()
