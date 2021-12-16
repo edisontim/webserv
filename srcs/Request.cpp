@@ -1,5 +1,7 @@
 #include "Request.hpp"
 
+Request::Request() {}
+
 Request::Request(std::string request)
 {
     std::istringstream  iss(request);
@@ -22,10 +24,7 @@ Request::Request(std::string request)
         this->headers[header_key] = header_value;
     }
     if (this->type == "POST")
-    {
-        std::getline(iss, line);
-        this->data = line;
-    }
+        this->data = request.substr(request.find("\r\n\r\n") + 4);
 	
 	//get correct hostname without ip following
 	headers["Host"] = headers["Host"].substr(0, headers["Host"].rfind(":"));
@@ -55,4 +54,11 @@ void    Request::print()
     }
     if (this->type == "POST")
         std::cout << std::endl << "DATA: " << this->data << std::endl;
+}
+
+void    Request::fill_object(std::string full_request)
+{
+    Request new_request(full_request);
+
+    *this = new_request;
 }

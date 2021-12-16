@@ -104,12 +104,60 @@ int Server::send_all(int fd, std::string http_response, int *len)
 	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
 }
 
+std::pair<int, Request>	Server::receive_http_request(int i)
+{
+	char		buff[512];
+	std::string	full_request;
+	int			nbytes;
+	int			find;
+	Request		request;
+
+	while (1)
+	{
+		nbytes = recv(pfds[1].fd, buff, sizeof(buff), 0);
+		if (nbytes == 0) {
+			std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
+			break;
+		}
+		if (nbytes < 0)
+			return (std::make_pair(false, request));
+		full_request += std::string(buff, nbytes);
+		memset(buff, 0, sizeof(buff));
+		find = full_request.find("\r\n\r\n");
+		if (find >= 0) {
+			request.fill_object(full_request);
+			break;
+		}
+	}
+
+	if (request.type == "POST")
+	{
+		long				to_read;
+		std::stringstream	ss_content_length(request.headers["Content-Length"]);
+		unsigned int		content_length = 0;
+
+		ss_content_length >> content_length;
+		to_read = content_length - request.data.size();
+
+		while (to_read > 0)
+		{
+			nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+			if (nbytes == 0) {
+				std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
+				break;
+			}
+			if (nbytes < 0)
+				return (std::make_pair(false, request));
+			request.data += std::string(buff, nbytes);
+			memset(buff, 0, sizeof(buff));
+			to_read -= nbytes;
+		}
+	}
+	return (std::make_pair(true, request));
+}
 
 int Server::poll_fds(void)
 {
-	//buffer to hold the data we receive from an incoming connection
-	char buff[9999];
-
 	//buffer to hold the ip of our incoming connection
 	char remote_ip[INET6_ADDRSTRLEN];
 
@@ -153,35 +201,20 @@ int Server::poll_fds(void)
 			}
 			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 			{
-				//loop here while nbytes > 0 ?
-				int nbytes = 0;
-				// int bytes_received = 0;
-				// while ((bytes_received = recv(pfds[i].fd, &buff[nbytes], sizeof(buff) - nbytes, 0)) > 0)
-				// {
-				// 	nbytes += bytes_received;
-				// }
-				nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
-				//error checking for recv (connection closed or error)
-				if (nbytes <= 0)
+				std::pair<int, Request>	pair_bytes_request;
+				pair_bytes_request = receive_http_request(i);
+				if (pair_bytes_request.first <= 0)
 				{
-					if (nbytes == 0) //connection closed
-					{
+					if (pair_bytes_request.first == 0) //connection closed
 						std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
-					}
-					if (nbytes < 0)
+					if (pair_bytes_request.first < 0)
 						std::cerr << strerror(errno) << std::endl;
 					close(pfds[i].fd);
 					pfds.erase(pfds.begin() + i);
 					continue ;
 				}
-				
-				//no error was detected so the data received is valid
 
-				//parse the raw data we got into a request object
-
-				std::cout << "test" << std::endl;
-				buff[nbytes] = '\0';
-				Request	request(buff);
+				Request	request = pair_bytes_request.second;
 				request.print();
 
 				std::cout << std::endl << "Requested uri : " << request.uri << std::endl;
@@ -199,7 +232,7 @@ int Server::poll_fds(void)
 					// of our request, that's the one that should treat it
 					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
 					{
-						request_treated = get_v_servers()[j].treat_request(request, nbytes);
+						request_treated = get_v_servers()[j].treat_request(request);
 						http_response = request_treated.second;
 						break;
 					}
@@ -209,7 +242,7 @@ int Server::poll_fds(void)
 				// of the requested page --> look in the locations directives
 				if (http_response.empty())
 				{
-					request_treated = this->treat_request(request, nbytes);
+					request_treated = this->treat_request(request);
 					http_response = request_treated.second;
 				}
 				if (pfds[i].revents & POLLOUT)
@@ -259,10 +292,8 @@ std::pair<bool, Location> Server::match_location(std::string requested_page)
 }
 
 //false if response is a redirect 301, true otherwise
-std::pair<bool, std::string> Server::treat_request(Request &req, int nbytes)
+std::pair<bool, std::string> Server::treat_request(Request &req)
 {
-	(void)nbytes;
-
 	std::string full_path;
 	std::string path;
 	Location location;
