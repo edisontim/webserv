@@ -28,7 +28,9 @@
 
 
 #define RED "\033[0;31m"
+#define GREEN "\033[0;32m"
 #define NORMAL "\x1b[0m"
+#define NOCOLOR "\033[0m" 
 
 class Server;
 
@@ -57,5 +59,6 @@ int                             fork_cgi_process(int tubes[2], int file_fd, char
 void                            php_fill_env(Request & request, std::string path, char **env[10]);
 std::pair<bool, std::string>    php_cgi(Request & request, std::string server_directory, std::string path, Location & location);
 std::pair<bool, std::string>    internal_server_error();
+void 							clean_exit(std::vector<Server *> &servers);
 
 #endif

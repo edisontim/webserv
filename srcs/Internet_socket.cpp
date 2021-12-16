@@ -82,16 +82,18 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 			addr = &(ipv4->sin_addr);
 			char addr_str[INET6_ADDRSTRLEN];
 			inet_ntop(iter->ai_family,  addr, addr_str, sizeof(addr_str));
+			std::cout << std::endl << GREEN << BOLD << "Server up and running" << NOCOLOR << NORMAL << std::endl;
 			std::cout << "IP : " << addr_str << std::endl;
-			std::cout << "Port : " << service << std::endl;
+			std::cout << "Port : " << service << std::endl << std::endl;
 		}
 		else
 		{
-			std::cout << "IPv6 motherfucker" << std::endl;
+			std::cout << std::endl << BLUE << BOLD << "Server up and running" << NOCOLOR << NORMAL << std::endl;
+			std::cout << "IPv6 address" << std::endl;
 		}
 	}
 	else
-		std::cout << "No socket was connected" << std::endl;
+		std::cout << RED << "No socket was connected for this server" << NOCOLOR << std::endl;
 
 
 	// if we got to the end of the linked list, that means no socket_fd was binded

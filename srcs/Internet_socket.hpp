@@ -20,6 +20,15 @@
 #include <sstream>
 #include <map>
 
+#define RED "\033[0;31m"
+#define GREEN "\033[0;32m"
+#define BLUE "\033[0;34m"
+
+#define NORMAL "\x1b[0m"
+#define BOLD "\x1b[1m"
+
+#define NOCOLOR "\033[0m" 
+
 #define NO_BOUND -1
 #define LISTEN_FAIL -2
 

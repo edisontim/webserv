@@ -43,74 +43,51 @@ std::pair<std::string, int> get_location_block(std::string file, int i)
 	return (std::make_pair(file.substr(begin, i - begin), i)); 
 }
 
-//server/location block string, index of end of directive
-std::string new_word(std::string block, int i)
+std::pair<std::string, int> next_word(std::string str, size_t i, bool skip_spaces, const char *skip_chars)
 {
-	unsigned int word_begin;
-	while (block[i] && isspace(block[i]))
+	size_t k;
+	size_t size;
+	//skip whitespaces until a word is found
+	while (i < str.length() && isspace(str[i]))
 		i++;
-	word_begin = i;
-	while (block[i] && !isspace(block[i])  && block[i] != '{' && block[i] != ';')
-		i++;
-	std::string word = block.substr(word_begin, i - word_begin);
-	//if the word is only a { then that means the url for the location wasn't specified
-	if (!word.compare("{"))
-		return (std::string());
-	return (block.substr(word_begin, i - word_begin));
-}
+	//get starting position of word
+	k = i;
 
-//server/location block string, index of end of directive
-std::string return_directive(std::string block, int i)
-{
-	unsigned int word_begin;
-	while (block[i] && isspace(block[i]))
+	//get ending position of word
+	while (i < str.length() && (skip_spaces && !isspace(str[i])) && str[i] != skip_chars[0] && str[i] != skip_chars[1])
 		i++;
-	word_begin = i;
-	while (block[i] && block[i] != ';')
-		i++;
-	std::string word = block.substr(word_begin, i - word_begin);
-	//if the word is only a { then that means the url for the location wasn't specified
-	if (!word.compare("{"))
-		return (std::string());
-	return (block.substr(word_begin, i - word_begin));
+
+	size = i - k;
+
+	//check if the word matches one of the directives that we allow 
+	//if it does add it to our map of location rules
+	std::string keyword = str.substr(k, size);
+	return (make_pair(keyword, i));
 }
 
 //function has to return the number of characters we treated from the server block
-int treat_location(Rules &new_rules, std::string server_block, int i)
+int treat_location(Rules &new_rules, std::string server_block, int start)
 {
-	unsigned int j = 0;
-	int k;
-	int size;
+	unsigned int i = 0;
 
-	std::pair<std::string, int> a = get_location_block(server_block, i);
+	//string that only holds the current location directive
+	std::pair<std::string, int> a = get_location_block(server_block, start);
 	std::string location_string = a.first;
 	unsigned int block_end = a.second;
 
 	//sets the url while constructing our empty map of location rules. We need to fill our map
-	Location new_location(new_word(location_string, 0));
-	while (location_string[j] != '{')
-		j++;
+	Location new_location(next_word(location_string, 0, true, "{;").first);
 
 	//if no url was specified, skip that block
-	if (!new_location.prefix.compare(""))
+	if (new_location.prefix == "")
 		return (block_end);
-	while (j < location_string.length())
+
+	while (i < location_string.length())
 	{
-		//skip whitespaces until a word is found
-		while (j < location_string.length() && isspace(location_string[j]))
-			j++;
-		//get starting position of word
-		k = j;
+		std::pair<std::string, int> a = next_word(location_string, i, true, "\0\0");
+		std::string keyword = a.first;
+		i = a.second;
 
-		//get ending position of word
-		while (j < location_string.length() && !isspace(location_string[j]))
-			j++;
-
-		size = j - k;
-
-		//check if the word matches one of the directives that we allow 
-		//if it does add it to our map of location rules
-		std::string keyword = location_string.substr(k, size);
 		//go through our map of location rules, if a key matches the word we found, assign a new value to it
 		std::map<std::string, std::string>::iterator iter = new_location.location_map.begin();
 		while (iter != new_location.location_map.end())
@@ -118,15 +95,13 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 			if (keyword == iter->first)
 			{
 				if (keyword == "return")
-					iter->second = return_directive(location_string, j);
+					iter->second = next_word(location_string, i, false, ";\0").first;
 				else
-					iter->second = new_word(location_string, j);
+					iter->second = next_word(location_string, i, true, "{;").first;
 			}
 			iter++;
 		}
 	}
-	// if (new_location.location_map["root"].back() != '/')
-	// 	new_location.location_map["root"] += "/";
 	if (new_location.prefix.back() == '/')
 		new_location.prefix.resize(new_location.prefix.size() - 1);	
 	new_rules.locations.push_back(new_location);
@@ -137,28 +112,17 @@ int treat_location(Rules &new_rules, std::string server_block, int i)
 Rules parse_server(std::string &server_block)
 {
 	unsigned int i = 0;
-	unsigned int j;
-	unsigned int size = 0;
 	Rules new_rules;
 
 	while (server_block[i])
 	{
-		//skip whitespaces until a word is found
-		while (i < server_block.length() && isspace(server_block[i]))
-			i++;
-		//get starting position of word
-		j = i;
+		std::pair<std::string, int> a = next_word(server_block, i, true, "\0\0");
+		std::string directives_keyword = a.first;
+		i = a.second;
 
-		//get ending position of word
-		while (i < server_block.length() && !isspace(server_block[i]))
-			i++;
-
-		size = i - j;
-		
 		//check if the word matches one of the directives that we allow 
 		//if it does and it's not location, store the next word in the second item of the pair
 		//from our directives map
-		std::string directives_keyword = server_block.substr(j, size);
 		if (directives_keyword == "location")
 		{
 			//get a new Location set of rules from of location block and push it in our vector of locations rules for this server block
@@ -169,8 +133,8 @@ Rules parse_server(std::string &server_block)
 		std::map<std::string, std::string>::iterator iter = new_rules.directives.begin();
 		while (iter != new_rules.directives.end())
 		{
-			if (!directives_keyword.compare(iter->first))
-				iter->second = new_word(server_block, i);
+			if (directives_keyword == iter->first)
+				iter->second = next_word(server_block, i, true, "{;").first;
 			iter++;
 		}
 	}
@@ -181,31 +145,18 @@ Rules parse_server(std::string &server_block)
 int server_keyword(std::string const &file)
 {
 	unsigned int i = 0;
-	unsigned int j;
-	unsigned int size = 0;
-	std::string server_string;
 
-	//skip whitespaces at the beginning
 	while (i < file.length())
 	{
-		//skip whitespaces until a word is found
-		while (isspace(file[i]) && file[i])
-			i++;
-
-		//get starting position of word
-		j = i;
-
-		//get ending position of word
-		while (!isspace(file[i]) && file[i])
-			i++;
+		std::pair<std::string, int> a = next_word(file, i, true, "\0\0");
+		std::string keyword = a.first;
+		i = a.second;
 		
-		size = i - j;
 		//get the substring from the begining of the word to the end and compare it to "server"
 		//if the first word is server, this means we might have a server block
-		if (file.substr(j, size) == "server")
+		if (keyword == "server")
 		{
-			std::cout << file.substr(j, size) << std::endl;
-			while (isspace(file[i]) && file[i])
+			while (file[i] && isspace(file[i]))
 				i++;
 			if (file[i] && file[i] == '{')
 				return (++i);
@@ -225,7 +176,15 @@ std::string get_server_block(std::string &file)
 	server_begin = server_keyword(file);
 	if (!server_begin)
 		return (std::string());
-	file = file.erase(0, server_begin);
+	try
+	{
+		file = file.erase(0, server_begin);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 	i = 0;
 	while (file[i])
 	{
@@ -278,7 +237,7 @@ void add_server(std::vector<Server *> &servers, Rules &rules)
 	//if the IP is empty, this means that we'll listen to all the available interfaces on this port. 
 	//An empty IP means listening to 0.0.0.0
 	if (!IP_port.first.compare(""))
-		rules.directives["listen"] = "0.0.0.0" + IP_port.second;
+		rules.directives["listen"] = "0.0.0.0:" + IP_port.second;
 	while (i < servers.size())
 	{
 		if (!servers[i]->get_rules().directives["listen"].compare(rules.directives["listen"]))
@@ -315,11 +274,13 @@ size_t conf_file(std::string path, std::vector<Server *> &servers)
 	fclose(file_fd);
 	//get the content of the file as a string
 	file_string = file_content(path, 0);
+	if (file_string.empty())
+		return (-1);
 	while (1)
 	{
 		//get the next "server" text block from file. Deletes the content in the string before it
 		std::string server_string = get_server_block(file_string);
-		
+
 		//this means no more server blocks where found
 		if (server_string.empty())
 			return (1);

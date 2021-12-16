@@ -331,7 +331,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 
 	if (req.uri.back() == '/') //if it's a directory
 	{
-		
 		path += location.location_map["index"];
 		if (location.location_map["autoindex"] == "on" && !found_file(path))
 			return (std::make_pair(true, get_response(server_directory, req.uri, req.protocol, 1, 0)));
@@ -362,7 +361,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 			return (std::make_pair(true, get_response(path, req.uri, req.protocol, 404, 0)));
 		}
 	}
-
 
 	//we are getting a GET request on server
 	if (req.type == "POST")

@@ -2,6 +2,15 @@
 #include "Server.hpp"
 #include <sstream>
 
+void clean_exit(std::vector<Server *> &servers)
+{
+	unsigned int i = 0;
+	while (i < servers.size())
+	{
+		delete servers[i];
+		i++;
+	}
+}
 
 template <typename T>
 std::string itoa( T Number )
@@ -73,12 +82,6 @@ std::string autoindex(std::string path, std::string uri)
 </body>\
 </html>";
 	return (body);
-}
-
-
-void cleanup(int)
-{
-	exit(1);
 }
 
 int found_file(std::string path)

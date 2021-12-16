@@ -1,0 +1,78 @@
+Rules of server : 
+-----------------
+DELETE -->          false
+GET -->             true
+POST -->            true
+autoindex -->       on
+cgi_path -->        
+error_page -->      404.html
+index -->           salazarserpentard.html
+return -->          
+root -->            ./website1
+upload_path -->     
+
+Rules of server : 
+-----------------
+DELETE -->          true
+GET -->             false
+POST -->            false
+autoindex -->       off
+cgi_path -->        
+error_page -->      404.html
+index -->           index.html
+return -->          
+root -->            ./delete
+upload_path -->     
+
+Rules of server : 
+-----------------
+DELETE -->          true
+GET -->             true
+POST -->            true
+autoindex -->       on
+cgi_path -->        
+error_page -->      404.html
+index -->           index.html
+return -->          
+root -->            ./website
+upload_path -->     
+
+
+[0;32m[1mServer up and running[0m[0m
+IP : 127.0.0.1
+Port : 8080
+
+Rules of server : 
+-----------------
+DELETE -->          false
+GET -->             true
+POST -->            false
+autoindex -->       off
+cgi_path -->        
+error_page -->      404.html
+index -->           index.html
+return -->          
+root -->            ./website1
+upload_path -->     
+
+
+[0;32m[1mServer up and running[0m[0m
+IP : 0.0.0.0
+Port : 8080
+
+Rules of server : 
+-----------------
+DELETE -->          false
+GET -->             true
+POST -->            false
+autoindex -->       off
+cgi_path -->        
+error_page -->      404.html
+index -->           index.html
+return -->          
+root -->            ./website1
+upload_path -->     
+
+
+[0;34m[1mServer up and running[0m[0m
+IPv6 address
