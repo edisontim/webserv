@@ -114,7 +114,7 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 
 	while (1)
 	{
-		nbytes = recv(pfds[1].fd, buff, sizeof(buff), 0);
+		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 		if (nbytes == 0)
 			return (std::make_pair(nbytes, request));
 		if (nbytes < 0)
