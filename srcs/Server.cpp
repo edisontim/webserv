@@ -105,6 +105,27 @@ int Server::send_all(int fd, std::string http_response, int *len)
 	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
 }
 
+void	reformat_data(Request & request)
+{
+	std::istringstream  data_stream(request.data);
+	int                 find_filename = 0;
+	std::string         filename;
+	std::string			line;
+
+	while (std::getline(data_stream, line))
+	{
+		if (line == "\r")
+			break;
+		find_filename = line.find("filename=\"");
+		if (find_filename >= 0) {
+			filename = line.substr(find_filename + 10);
+			filename.resize(filename.size() - 2);
+			request.headers["Filename"] = filename;
+			break;
+		}
+	}
+}
+
 std::pair<int, Request>	Server::receive_http_request(int i)
 {
 	char		buff[512];
@@ -115,6 +136,7 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 
 	while (1)
 	{
+		poll(&(pfds[i]), 1, -1);
 		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 		if (nbytes == 0)
 			return (std::make_pair(nbytes, request));
@@ -140,6 +162,7 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 
 		while (to_read > 0)
 		{
+			poll(&(pfds[i]), 1, -1);
 			nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
 			if (nbytes == 0)
 				return (std::make_pair(nbytes, request));
@@ -149,6 +172,8 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 			memset(buff, 0, sizeof(buff));
 			to_read -= nbytes;
 		}
+		if (request.headers["Content-Type"] == "multipart/form-data;")
+			reformat_data(request);
 	}
 	return (std::make_pair(nbytes, request));
 }

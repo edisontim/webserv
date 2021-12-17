@@ -258,7 +258,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		if (http_v == "true")
 			response += "DELETE";
 		response += "\r\n\r\n";
-		response += "<h1>405 Try another method!</h1>";
+		response += "<h1>405 Method Not Allowed</h1>";
 		return (response);
 	}
 

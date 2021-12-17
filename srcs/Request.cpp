@@ -28,28 +28,7 @@ Request::Request(std::string request)
         }
     }
     if (this->type == "POST")
-    {
         this->data = request.substr(request.find("\r\n\r\n") + 4);
-        if (this->headers["Content-Type"] == "multipart/form-data;")
-        {
-            std::istringstream  data_stream(data);
-            int                 find_filename = 0;
-            std::string         filename;
-
-            while (std::getline(data_stream, line))
-            {
-                if (line == "\r")
-                    break;
-                find_filename = line.find("filename=\"");
-                if (find_filename >= 0) {
-                    filename = line.substr(find_filename + 10);
-                    filename.resize(filename.size() - 2);
-                    this->headers["Filename"] = filename;
-                    break;
-                }
-            }
-        }
-    }
 	
 	//get correct hostname without ip following
 	headers["Host"] = headers["Host"].substr(0, headers["Host"].rfind(":"));
