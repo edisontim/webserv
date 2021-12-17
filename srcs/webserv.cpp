@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 	{
 		i = 0;
 
-		reset_revents(all_pfds);
+		// reset_revents(all_pfds);
 		//poll our vector of fds
 		poll_count = poll(all_pfds.data(), all_pfds.size(), -1);
 		std::cout << poll_count << std::endl;

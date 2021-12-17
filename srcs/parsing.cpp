@@ -43,7 +43,7 @@ std::pair<std::string, int> get_location_block(std::string file, int i)
 	return (std::make_pair(file.substr(begin, i - begin), i)); 
 }
 
-std::pair<std::string, int> next_word(std::string str, size_t i, bool skip_spaces, const char *skip_chars)
+std::pair<std::string, int> next_word(std::string str, size_t i, bool a, const char *skip_chars)
 {
 	size_t k;
 	size_t size;
@@ -54,7 +54,7 @@ std::pair<std::string, int> next_word(std::string str, size_t i, bool skip_space
 	k = i;
 
 	//get ending position of word
-	while (i < str.length() && (skip_spaces && !isspace(str[i])) && str[i] != skip_chars[0] && str[i] != skip_chars[1])
+	while (i < str.length() && str[i] != skip_chars[0] && str[i] != skip_chars[1] && !(a && isspace(str[i])))
 		i++;
 
 	size = i - k;
@@ -105,6 +105,7 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 	if (new_location.prefix.back() == '/')
 		new_location.prefix.resize(new_location.prefix.size() - 1);	
 	new_rules.locations.push_back(new_location);
+	display_map(new_location.location_map);
 	return (block_end);
 }
 

@@ -71,7 +71,7 @@ void Server::push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events)
 
 	new_fd.fd = fd;
 	new_fd.events = events;
-	// fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
+	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
 	pfds.push_back(new_fd);
 	all_pfds.push_back(new_fd);
 }
@@ -179,7 +179,7 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 			std::cerr << "error on accepting new connection" << std::endl;
 		else
 		{
-			push_fd(all_pfds, new_connection, POLLIN | POLLOUT);
+			push_fd(all_pfds, new_connection, POLLIN);
 			std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
 		}
 	}
@@ -230,6 +230,10 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 			request_treated = this->treat_request(request);
 			http_response = request_treated.second;
 		}
+
+		all_pfds[all_index].events = POLLOUT;
+		poll(all_pfds.data() + all_index, 1, 0);
+
 		if (all_pfds[all_index].revents & POLLOUT)
 		{
 			int len = http_response.length();
@@ -244,6 +248,7 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 				close_connection(all_pfds, server_index, all_index);
 			}
 			//not sure these are necessary if recv and send worked
+			all_pfds[all_index].events = POLLIN;
 			if (!request_treated.first)
 				close_connection(all_pfds, server_index, all_index);
 		}
