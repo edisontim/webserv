@@ -60,35 +60,37 @@ std::string gen_random_string(const int len)
 
 std::pair<bool, std::string>    upload_file(Request & request, std::string upload_path)
 {
+    std::cout << "upload files woop woop" << std::endl;
+    // if directory doesn't exist, create it
     if (!directory_exists(upload_path)) {
         if (mkdir(upload_path.c_str(), 0644) == -1)
             return (internal_server_error());
     }
+    // make sure path ends with /
     if (upload_path[upload_path.size() - 1] != '/')
         upload_path += '/';
-    std::string file_name = gen_random_string(10);
-    std::cout << "random file name: " << file_name << std::endl;
-    std::string full_path = upload_path + file_name;
+
+    std::string full_path = upload_path + request.headers["Filename"];
+
     struct stat buffer;
     while (stat(full_path.c_str(), &buffer) == 0)   // file already exists, we need a new one
-        file_name = gen_random_string(10);
+        full_path = upload_path + gen_random_string(10) + get_file_extension(request.headers["Filename"]);
+
     // create file with full path
     std::ofstream   outfile(full_path);
+
     // write data to new file
-    // full_path += ".png"; ADD EXTENSION
     int file = open(full_path.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
 	write(file, request.data.c_str(), request.data.size());
-    return std::make_pair(true, "ok");
+    return std::make_pair(false, "ok");
 }
 
 std::pair<bool, std::string>    check_upload_file(Request & request, Location & location)
 {
     std::string         upload_path = location.location_map["upload_path"];
-    std::stringstream   ss_content_len(request.headers["Content-Length"]);
-    unsigned int        content_len = 0;
+    unsigned int        content_len = request.data.size();
     unsigned int        max_body_size;
 
-    ss_content_len >> content_len;
     max_body_size = get_max_body_size(location);
 
     if (upload_path.empty()) {

@@ -11,8 +11,7 @@ std::pair<bool, std::string> Server::treat_get_request(Request &req, Location &l
     //treating HTTP/1.1 request
     if (!req.protocol.compare("HTTP/1.1"))
     {
-        if (file_is_php(req.uri)) {
-            std::cout << "GET PHP REQUEST" << std::endl;
+        if (get_file_extension(req.uri) == "php") {
             return (php_cgi(req, server_directory, path, location));
         }
         else {

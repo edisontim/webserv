@@ -22,9 +22,38 @@ Request::Request(std::string request)
         line_stream >> header_key >> header_value;
         header_key.resize(header_key.size() - 1);
         this->headers[header_key] = header_value;
+        if (header_value == "multipart/form-data;") {
+            line_stream >> header_value;
+            this->headers["boundary"] =  header_value.substr(9);
+        }
     }
     if (this->type == "POST")
+    {
         this->data = request.substr(request.find("\r\n\r\n") + 4);
+        if (this->headers["Content-Type"] == "multipart/form-data;")
+        {
+            std::istringstream  data_stream(data);
+            int                 find_filename = 0;
+            std::string         filename;
+
+            while (std::getline(data_stream, line))
+            {
+                if (line == "\r")
+                    break;
+                find_filename = line.find("filename=\"");
+                if (find_filename >= 0) {
+                    filename = line.substr(find_filename + 10);
+                    filename.resize(filename.size() - 2);
+                    this->headers["Filename"] = filename;
+                    break;
+                }
+            }
+            data.erase(0, data.find("\n\r") + 3);
+            // std::cout << "rfind: " << data.rfind(headers["boundary"]) << std::endl;
+            data.erase(data.rfind(headers["boundary"]) - 3);
+            // std::cout << "data:[" << data << "]" << std::endl;
+        }
+    }
 	
 	//get correct hostname without ip following
 	headers["Host"] = headers["Host"].substr(0, headers["Host"].rfind(":"));

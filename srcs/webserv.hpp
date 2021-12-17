@@ -54,7 +54,7 @@ std::string							split(std::string &src, std::string delim);
 void								display_map(std::map<std::string, std::string> map);
 
 // cgi
-bool                            file_is_php(std::string & uri);
+std::string                     get_file_extension(std::string & uri);
 std::pair<bool, std::string>    internal_server_error();
 int                             fork_cgi_process(int tubes[2], int file_fd, char *cgi_args[3], char *env[13]);
 void                            php_fill_env(Request & request, std::string path, char **env[10]);
