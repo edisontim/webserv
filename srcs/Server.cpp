@@ -72,6 +72,8 @@ void Server::push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events)
 	new_fd.fd = fd;
 	new_fd.events = events;
 	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
+
+	//push in both the all_pfds and our server's fds
 	pfds.push_back(new_fd);
 	all_pfds.push_back(new_fd);
 }
@@ -152,8 +154,53 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 	return (std::make_pair(true, request));
 }
 
+std::pair<bool, std::string> Server::build_http_response(Request &request)
+{
+	// We need to parse the request to get the hostname!!!
+	std::string hostname = request.headers["Host"];
+	std::pair<bool, std::string> request_treated;
+	std::string http_response = "";
+
+	for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
+	{
+		//if we find a virtual server whose server_name directives matches with the Host field
+		// of our request, that's the one that should treat it
+		if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
+		{
+			request_treated = get_v_servers()[j].treat_request(request);
+			http_response = request_treated.second;
+			break;
+		}
+	}
+
+	// need to check if the request method (GET, POST OR DELETE) is allowed on the location
+	// of the requested page --> look in the locations directives
+	if (http_response.empty())
+	{
+		request_treated = this->treat_request(request);
+		http_response = request_treated.second;
+	}
+	return (request_treated);
+}
+
+void Server::send_http_response(std::vector<struct pollfd> &all_pfds, std::pair<bool, std::string> request_treated, int all_index, int server_index)
+{
+	int len = request_treated.second.length();
+	int bytes_sent = send_all(all_pfds[all_index].fd, request_treated.second, &len);
+	//number of bytes send differs from the size of the string, that means we had a problem with send()
+	if (bytes_sent == -1 || len != static_cast<int>(request_treated.second.length()))
+	{
+		if (bytes_sent == -1)
+			std::cerr << "error on send" << std::endl;
+		else
+			std::cerr << "send didn't write all the package" << std::endl;
+		close_connection(all_pfds, server_index, all_index);
+	}
+}
+
 int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
 {
+
 	//buffer to hold the ip of our incoming connection
 	char remote_ip[INET6_ADDRSTRLEN];
 
@@ -164,8 +211,6 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 	//fd of our new connection
 	int new_connection;
 
-
-	//go through our array to check if one fd is ready to read
 
 	//our socket_fd is the one ready to read, this means a new incoming connection
 	if (all_pfds[all_index].fd == sock.get_socket_fd())
@@ -202,54 +247,22 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 		Request	request = pair_bytes_request.second;
 
 		if (request.type.empty() || request.uri.empty() || request.protocol.empty())
-			return (0) ;				
+			return (0);
 
-		// We need to parse the request to get the hostname!!!
-		std::string hostname = request.headers["Host"];
-		std::pair<bool, std::string> request_treated;
-		std::string http_response = "";
+		std::pair<bool, std::string> request_treated = build_http_response(request);
 
-		for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
-		{
-			//if we find a virtual server whose server_name directives matches with the Host field
-			// of our request, that's the one that should treat it
-			if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
-			{
-				request_treated = get_v_servers()[j].treat_request(request);
-				http_response = request_treated.second;
-				break;
-			}
-		}
+		std::string http_response = request_treated.second;
 
-		// need to check if the request method (GET, POST OR DELETE) is allowed on the location
-		// of the requested page --> look in the locations directives
-		if (http_response.empty())
-		{
-			request_treated = this->treat_request(request);
-			http_response = request_treated.second;
-		}
-
+		//check if the fd of the incoming request is also ready for a write 
 		all_pfds[all_index].events = POLLOUT;
 		poll(all_pfds.data() + all_index, 1, 0);
 
 		if (all_pfds[all_index].revents & POLLOUT)
-		{
-			int len = http_response.length();
-			int bytes_sent = send_all(all_pfds[all_index].fd, http_response, &len);
-			//number of bytes send differs from the size of the string, that means we had a problem with send()
-			if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
-			{
-				if (bytes_sent == -1)
-					std::cerr << "error on send" << std::endl;
-				else
-					std::cerr << "send didn't write all the package" << std::endl;
-				close_connection(all_pfds, server_index, all_index);
-			}
-			//not sure these are necessary if recv and send worked
-			all_pfds[all_index].events = POLLIN;
-			if (!request_treated.first)
-				close_connection(all_pfds, server_index, all_index);
-		}
+			send_http_response(all_pfds, request_treated, all_index, server_index);
+		
+		all_pfds[all_index].events = POLLIN;
+		if (!request_treated.first)
+			close_connection(all_pfds, server_index, all_index);
 	}
 	return (1);
 }
@@ -289,9 +302,6 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 
 	//page requested is a page included in a location block
 	location = found.second;
-	
-
-	//our set of rules from the location match
 
 	//our file path inside our server's directories (file that we actually need to open)
 	path = location.location_map["root"];
@@ -302,9 +312,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 	// then we need to look were the url continues, and add that to the back of our root
 	path += req.uri.substr(location.prefix.length());
 
-	server_directory = path;
-
-	server_directory = server_directory.substr(0, server_directory.rfind("/") + 1);
+	server_directory = path.substr(0, path.rfind("/") + 1);
 
 	if (location.location_map[req.type] != "true")
 		return (std::make_pair(false, get_response(location.location_map["GET"], location.location_map["POST"], location.location_map["DELETE"], 405, 0)));
@@ -337,9 +345,11 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 			}
 		}
 	}
+
 	//if we got to here, we either have : 
 	//	1. the path was a directory so we added the index directive to it
 	//	2. the path is a file, we don't know if it's valid or not yet
+
 	//check here for 404 file not found
 	if (!found_file(path))
 	{

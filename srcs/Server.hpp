@@ -88,7 +88,6 @@ class Server
 
 
 		//treat the request according to the set of rules of our servers
-		void							incoming_connection(std::vector<struct pollfd> &all_pfds);
 		std::pair<bool, std::string>	build_http_response(Request &request);
 		void							send_http_response(std::vector<struct pollfd> &all_pfds, std::pair<bool, std::string> request_treated, int all_index, int server_index);
 		std::pair<int, Request>			receive_http_request(int i);
