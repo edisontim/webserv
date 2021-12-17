@@ -106,7 +106,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	ip_port = *(struct sockaddr_in *)iter->ai_addr;
 	freeaddrinfo(res);
 
-	if (listen(socket_fd, 10) == -1)
+	if (listen(socket_fd, 20) == -1)
 	{
 		socket_fd = LISTEN_FAIL;
 		return (LISTEN_FAIL);

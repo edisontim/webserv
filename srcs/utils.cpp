@@ -12,6 +12,47 @@ void clean_exit(std::vector<Server *> &servers)
 	}
 }
 
+void reset_revents(std::vector<struct pollfd> &all_pfds)
+{
+	size_t i = 0;
+
+	while (i < all_pfds.size())
+	{
+		all_pfds[i].revents = 0;
+		i++;
+	}
+}
+
+//id of server, index in server
+std::pair<int, int> id_server(std::vector<Server *> &servers, int fd)
+{
+	size_t i = 0;
+	size_t j;
+	while (i < servers.size())
+	{
+		j = 0;
+		while (j < servers[i]->get_pfds().size())
+		{
+			if (servers[i]->get_pfds()[j].fd == fd)
+				return (std::make_pair(i, j));
+			j++;
+		}
+		i++;
+	}
+	return (std::make_pair(0, 0));
+}
+
+void fill(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds)
+{
+	size_t i = 0;
+
+	while (i < servers.size())
+	{
+		all_pfds.push_back(servers[i]->get_pfds()[0]);
+		i++;
+	}
+}
+
 template <typename T>
 std::string itoa( T Number )
 {

@@ -52,6 +52,10 @@ int									found_file(std::string path);
 std::string							generate_error_page(std::string p_text, std::string code_response);
 std::string							split(std::string &src, std::string delim);
 void								display_map(std::map<std::string, std::string> map);
+void								fill(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds);
+void								clean_exit(std::vector<Server *> &servers);
+std::pair<int, int>					id_server(std::vector<Server *> &servers, int fd);
+void								reset_revents(std::vector<struct pollfd> &all_pfds);
 
 // cgi
 std::string                     get_file_extension(std::string & uri);
@@ -60,7 +64,6 @@ int                             fork_cgi_process(int tubes[2], int file_fd, char
 void                            php_fill_env(Request & request, std::string path, char **env[10]);
 std::pair<bool, std::string>    php_cgi(Request & request, std::string server_directory, std::string path, Location & location);
 std::pair<bool, std::string>    internal_server_error();
-void 							clean_exit(std::vector<Server *> &servers);
 
 // upload files
 std::pair<bool, std::string>    forbidden_page();

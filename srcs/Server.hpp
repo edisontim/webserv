@@ -75,7 +75,7 @@ class Server
 
 		//add a new connection to our vector of fds
 		void		push_fd(struct pollfd new_fd);
-		void		push_fd(int fd, int events);
+		void		push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events);
 
 		//remove a connection from our vector of fds
 		void		pop_fd(void);
@@ -83,14 +83,13 @@ class Server
 		size_t		vector_size();
 		
 		//poll our fds to see if a request came through from a connection and send the response if there was
-		int			poll_fds(void);
-		void		add_v_server(std::string virtual_server);
+		int			poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
 
 		//treat the request according to the set of rules of our servers
 		std::pair<bool, std::string>	treat_request(Request &req);
 		std::pair<bool, Location> 		match_location(std::string requested_page);
 		void							display_IP(void);
-		int								close_connection(int fd_index);
+		int								close_connection(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
 		std::pair<bool, std::string>	treat_get_request(Request &req, Location &location, std::string path, std::string server_directory);
 		std::pair<bool, std::string>	treat_post_request(Request & request, Location &location, std::string path, std::string server_directory);
 		std::string						treat_delete_request(std::string path);

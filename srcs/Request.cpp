@@ -48,10 +48,6 @@ Request::Request(std::string request)
                     break;
                 }
             }
-            data.erase(0, data.find("\n\r") + 3);
-            // std::cout << "rfind: " << data.rfind(headers["boundary"]) << std::endl;
-            data.erase(data.rfind(headers["boundary"]) - 3);
-            // std::cout << "data:[" << data << "]" << std::endl;
         }
     }
 	

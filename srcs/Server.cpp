@@ -65,14 +65,15 @@ void Server::push_fd(struct pollfd new_fd)
 	pfds.push_back(new_fd);
 }
 
-void Server::push_fd(int fd, int events)
+void Server::push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events)
 {
 	struct pollfd new_fd;
 
 	new_fd.fd = fd;
 	new_fd.events = events;
-	// fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
+	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
 	pfds.push_back(new_fd);
+	all_pfds.push_back(new_fd);
 }
 
 void Server::pop_fd(void)
@@ -149,10 +150,10 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 			to_read -= nbytes;
 		}
 	}
-	return (std::make_pair(true, request));
+	return (std::make_pair(nbytes, request));
 }
 
-int Server::poll_fds(void)
+int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
 {
 	//buffer to hold the ip of our incoming connection
 	char remote_ip[INET6_ADDRSTRLEN];
@@ -164,115 +165,103 @@ int Server::poll_fds(void)
 	//fd of our new connection
 	int new_connection;
 
-	size_type i;
-	//poll our vector of fds
-	int poll_count = poll(pfds.data(), pfds.size(), 0);
-
-	if (poll_count == -1)
-	{
-		std::cerr << "poll error" << std::endl;
-		return (0);
-	}
 
 	//go through our array to check if one fd is ready to read
-	i = 0;
-	while (i < pfds.size())
+
+	//our socket_fd is the one ready to read, this means a new incoming connection
+	if (all_pfds[all_index].fd == sock.get_socket_fd())
 	{
-		if (pfds[i].revents & POLLIN) //one is ready
+		remoteaddr_len = sizeof(remoteaddr);
+
+		//accept the connection
+		new_connection = accept(sock.get_socket_fd(), (struct sockaddr *)&remoteaddr, &remoteaddr_len);
+		if (new_connection == -1)
+			std::cerr << "error on accepting new connection" << std::endl;
+		else
 		{
-			//our socket_fd is the one ready to read, this means a new incoming connection
-			if (pfds[i].fd == sock.get_socket_fd())
+			push_fd(all_pfds, new_connection, POLLIN);
+			std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
+		}
+	}
+	else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
+	{
+		std::pair<int, Request>	pair_bytes_request;
+		pair_bytes_request = receive_http_request(server_index);
+
+		if (pair_bytes_request.first <= 0)
+		{
+			if (pair_bytes_request.first == 0) //connection closed
+				std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
+			if (pair_bytes_request.first < 0)
+				std::cerr << strerror(errno) << std::endl;
+
+			close(all_pfds[all_index].fd);
+			pfds.erase(pfds.begin() + server_index);
+			all_pfds.erase(all_pfds.begin() + all_index);
+			return (0) ;
+		}
+
+		Request	request = pair_bytes_request.second;
+
+		if (request.type.empty() || request.uri.empty() || request.protocol.empty())
+			return (0) ;				
+
+		// We need to parse the request to get the hostname!!!
+		std::string hostname = request.headers["Host"];
+		std::pair<bool, std::string> request_treated;
+		std::string http_response = "";
+
+		for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
+		{
+			//if we find a virtual server whose server_name directives matches with the Host field
+			// of our request, that's the one that should treat it
+			if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
 			{
-				remoteaddr_len = sizeof(remoteaddr);
-
-				//accept the connection
-				new_connection = accept(sock.get_socket_fd(), (struct sockaddr *)&remoteaddr, &remoteaddr_len);
-				if (new_connection == -1)
-					std::cerr << "error on accepting new connection" << std::endl;
-				else
-				{
-					push_fd(new_connection, POLLIN | POLLOUT);
-					std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
-				}
-			}
-			else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
-			{
-				std::pair<int, Request>	pair_bytes_request;
-				pair_bytes_request = receive_http_request(i);
-				if (pair_bytes_request.first <= 0)
-				{
-					if (pair_bytes_request.first == 0) //connection closed
-						std::cout << "Connection closed by client at socket " << pfds[i].fd << std::endl;
-					if (pair_bytes_request.first < 0)
-						std::cerr << strerror(errno) << std::endl;
-					close(pfds[i].fd);
-					pfds.erase(pfds.begin() + i);
-					continue ;
-				}
-
-				Request	request = pair_bytes_request.second;
-				// std::cout << "REQUEST (just received) CONTENT LEN: " << request.headers["Content-L"]
-
-				std::string full_path = "./tamere.jpg";
-				int file = open(full_path.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0644);
-				write(file, request.data.c_str(), request.data.size());
-				if (request.type.empty() || request.uri.empty() || request.protocol.empty())
-					continue ;				
-
-				// We need to parse the request to get the hostname!!!
-				std::string hostname = request.headers["Host"];
-				std::pair<bool, std::string> request_treated;
-				std::string http_response = "";
-
-				for (unsigned int j = 0; j < this->get_v_servers().size(); j++)
-				{
-					//if we find a virtual server whose server_name directives matches with the Host field
-					// of our request, that's the one that should treat it
-					if (!get_v_servers()[j].get_rules().directives["server_name"].compare(hostname))
-					{
-						request_treated = get_v_servers()[j].treat_request(request);
-						http_response = request_treated.second;
-						break;
-					}
-				}
-
-				// need to check if the request method (GET, POST OR DELETE) is allowed on the location
-				// of the requested page --> look in the locations directives
-				if (http_response.empty())
-				{
-					request_treated = this->treat_request(request);
-					http_response = request_treated.second;
-				}
-				if (pfds[i].revents & POLLOUT)
-				{
-					int len = http_response.length();
-					int bytes_sent = send_all(pfds[i].fd, http_response, &len);
-					//number of bytes send differs from the size of the string, that means we had a problem with send()
-					if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
-					{
-						if (bytes_sent == -1)
-							std::cerr << "error on send" << std::endl;
-						else
-							std::cerr << "send didn't write all the package" << std::endl;
-						close_connection(i);
-					}
-					//not sure these are necessary if recv and send worked
-					if (!request_treated.first)
-						close_connection(i);
-				}
-
+				request_treated = get_v_servers()[j].treat_request(request);
+				http_response = request_treated.second;
+				break;
 			}
 		}
-		i++;
+
+		// need to check if the request method (GET, POST OR DELETE) is allowed on the location
+		// of the requested page --> look in the locations directives
+		if (http_response.empty())
+		{
+			request_treated = this->treat_request(request);
+			http_response = request_treated.second;
+		}
+
+		all_pfds[all_index].events = POLLOUT;
+		poll(all_pfds.data() + all_index, 1, 0);
+
+		if (all_pfds[all_index].revents & POLLOUT)
+		{
+			int len = http_response.length();
+			int bytes_sent = send_all(all_pfds[all_index].fd, http_response, &len);
+			//number of bytes send differs from the size of the string, that means we had a problem with send()
+			if (bytes_sent == -1 || len != static_cast<int>(http_response.length()))
+			{
+				if (bytes_sent == -1)
+					std::cerr << "error on send" << std::endl;
+				else
+					std::cerr << "send didn't write all the package" << std::endl;
+				close_connection(all_pfds, server_index, all_index);
+			}
+			//not sure these are necessary if recv and send worked
+			all_pfds[all_index].events = POLLIN;
+			if (!request_treated.first)
+				close_connection(all_pfds, server_index, all_index);
+		}
 	}
 	return (1);
 }
 
-int	Server::close_connection(int fd_index)
+int	Server::close_connection(std::vector<struct pollfd> &all_pfds, int server_index, int all_index)
 {
-	shutdown(pfds[fd_index].fd, SHUT_RDWR);
-	close(pfds[fd_index].fd);
-	pfds.erase(pfds.begin() + fd_index);
+	shutdown(all_pfds[all_index].fd, SHUT_RDWR);
+	close(all_pfds[all_index].fd);
+	all_pfds.erase(all_pfds.begin() + all_index);
+	pfds.erase(pfds.begin() + server_index);
 	return (1);
 }
 

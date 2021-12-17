@@ -61,6 +61,8 @@ std::string gen_random_string(const int len)
 std::pair<bool, std::string>    upload_file(Request & request, std::string upload_path)
 {
     std::cout << "upload files woop woop" << std::endl;
+    request.data.erase(0, request.data.find("\n\r") + 3);
+    request.data.erase(request.data.rfind(request.headers["boundary"]) - 3);
     // if directory doesn't exist, create it
     if (!directory_exists(upload_path)) {
         if (mkdir(upload_path.c_str(), 0644) == -1)
@@ -71,11 +73,12 @@ std::pair<bool, std::string>    upload_file(Request & request, std::string uploa
         upload_path += '/';
 
     std::string full_path = upload_path + request.headers["Filename"];
+    std::string file_extension = get_file_extension(request.headers["Filename"]);
 
     struct stat buffer;
     while (stat(full_path.c_str(), &buffer) == 0)   // file already exists, we need a new one
-        full_path = upload_path + gen_random_string(10) + get_file_extension(request.headers["Filename"]);
-
+        full_path = upload_path + gen_random_string(10) + '.' + get_file_extension(request.headers["Filename"]);
+    std::cout << "full path: " << full_path << std::endl;
     // create file with full path
     std::ofstream   outfile(full_path);
 

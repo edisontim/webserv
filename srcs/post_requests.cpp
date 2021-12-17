@@ -9,9 +9,7 @@ std::string    get_file_extension(std::string & uri)
     last_dot_position = uri.find_last_of(".");
     if (last_dot_position <= 0)
         return (std::string());
-
     return (uri.substr(last_dot_position + 1));
-
 }
 
 std::pair<bool, std::string> Server::treat_post_request(Request & request, Location &location, std::string path, std::string server_directory)
