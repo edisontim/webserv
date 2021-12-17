@@ -128,7 +128,6 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 			break;
 		}
 	}
-
 	if (request.type == "POST")
 	{
 		long				to_read;
@@ -193,8 +192,7 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 			if (pair_bytes_request.first == 0) //connection closed
 				std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
 			if (pair_bytes_request.first < 0)
-				std::cerr << strerror(errno) << std::endl;
-
+				std::cerr << "Ressource temporarily unavailable probably" << std::endl;
 			close(all_pfds[all_index].fd);
 			pfds.erase(pfds.begin() + server_index);
 			all_pfds.erase(all_pfds.begin() + all_index);
@@ -355,7 +353,7 @@ std::pair<bool, std::string> Server::treat_request(Request &req)
 		}
 	}
 
-	//we are getting a GET request on server
+	//check for POST, GET or DELETE request
 	if (req.type == "POST")
 		return (this->treat_post_request(req, location, path, server_directory));
 

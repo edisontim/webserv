@@ -38,7 +38,7 @@ def child():
 
 
 pids = []
-pid_number = 300
+pid_number = 1
 
 for i in range(pid_number):
 	try :

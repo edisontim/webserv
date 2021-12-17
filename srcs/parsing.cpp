@@ -105,7 +105,6 @@ int treat_location(Rules &new_rules, std::string server_block, int start)
 	if (new_location.prefix.back() == '/')
 		new_location.prefix.resize(new_location.prefix.size() - 1);	
 	new_rules.locations.push_back(new_location);
-	display_map(new_location.location_map);
 	return (block_end);
 }
 

@@ -295,7 +295,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		body = autoindex(path, req_uri);
 		response += "Content-length: " + itoa(body.length());
 		response += "\r\n";
-		response += "Connection: Closed\r\n\r\n";
+		response += "Connection: Keep-Alive\r\n\r\n";
 		response += body;
 		return (response);
 	}
@@ -318,7 +318,8 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	response += "\r\n";
 
 	//Connection type
-	response += "Connection: Closed\r\n\r\n";
+	response += "Connection: Keep-Alive\r\n";
+	response += "Keep-Alive: timeout=5, max=100\r\n\r\n";
 	response += body;
 	return (response);
 }
