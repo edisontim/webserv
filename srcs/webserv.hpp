@@ -68,7 +68,7 @@ std::pair<bool, std::string>    internal_server_error();
 // upload files
 std::pair<bool, std::string>    forbidden_page();
 std::pair<bool, std::string>    request_entity_too_large();
-unsigned int                    get_max_body_size(Location & location);
+long                            get_max_body_size(Location & location);
 std::pair<bool, std::string>    check_upload_file(Request & request, Location & location);
 
 #endif

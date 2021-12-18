@@ -13,11 +13,11 @@ std::pair<bool, std::string>    request_entity_too_large()
     return (std::make_pair(false, generate_error_page(page_message, page_message)));
 }
 
-unsigned int    get_max_body_size(Location & location)
+long    get_max_body_size(Location & location)
 {
     std::string         str_body_size = location.location_map["client_max_body_size"];
     std::stringstream   ss(str_body_size);
-    unsigned int        max_body_size = 0;
+    long                max_body_size = 0;
     std::string         units;
 
     ss >> max_body_size;
@@ -91,8 +91,8 @@ std::pair<bool, std::string>    upload_file(Request & request, std::string uploa
 std::pair<bool, std::string>    check_upload_file(Request & request, Location & location)
 {
     std::string         upload_path = location.location_map["upload_path"];
-    unsigned int        content_len = request.data.size();
-    unsigned int        max_body_size;
+    long                content_len = request.data.size();
+    long                max_body_size;
 
     max_body_size = get_max_body_size(location);
 

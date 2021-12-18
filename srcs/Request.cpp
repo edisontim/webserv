@@ -26,6 +26,10 @@ Request::Request(std::string request)
             line_stream >> header_value;
             this->headers["boundary"] =  header_value.substr(9);
         }
+        if (header_key == "Content-Length") {
+            std::cout << header_value << std::endl;
+            exit(0);
+        }
     }
     if (this->type == "POST")
         this->data = request.substr(request.find("\r\n\r\n") + 4);
