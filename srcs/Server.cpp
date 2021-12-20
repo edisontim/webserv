@@ -185,11 +185,11 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 			return (std::make_pair(nbytes, request));
 		if (nbytes < 0)
 			return (std::make_pair(nbytes, request));
-		full_request += std::string(buff, nbytes);
+		full_request[pfds[i].fd] += std::string(buff, nbytes);
 		memset(buff, 0, sizeof(buff));
-		find = full_request.find("\r\n\r\n");
+		find = full_request[pfds[i].fd].find("\r\n\r\n");
 		if (find >= 0) {
-			request.fill_object(full_request);
+			request.fill_object(full_request[pfds[i].fd]);
 			break;
 		}
 	}
