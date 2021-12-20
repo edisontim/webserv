@@ -150,7 +150,7 @@ std::pair<int, Request>	Server::receive_http_request(int i)
 			break;
 		}
 	}
-
+	
 	if (request.type == "POST")
 	{
 		long				to_read;

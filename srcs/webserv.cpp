@@ -124,7 +124,6 @@ int main(int argc, char *argv[])
 		// reset_revents(all_pfds);
 		//poll our vector of fds
 		poll_count = poll(all_pfds.data(), all_pfds.size(), -1);
-		std::cout << poll_count << std::endl;
 		if (poll_count == -1)
 		{
 			std::cerr << "poll error" << std::endl;

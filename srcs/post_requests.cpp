@@ -20,7 +20,7 @@ std::pair<bool, std::string> Server::treat_post_request(Request & request, Locat
         return (php_cgi(request, server_directory, path, location));
     }
     else if (request.headers["Content-Type"] == "multipart/form-data;") {
-        return (check_upload_file(request, location));
+        return (check_upload_file(request, location, path));
     }
     else {
         return (treat_get_request(request, location, path, server_directory));
