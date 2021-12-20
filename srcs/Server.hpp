@@ -71,21 +71,26 @@ class Server
 //		___________UTILS___________
 
 		//add a new virtual server to our vector
-		void		push_v_server(Virtual_server new_server);
+		void							push_v_server(Virtual_server new_server);
 
 		//add a new connection to our vector of fds
-		void		push_fd(struct pollfd new_fd);
-		void		push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events);
+		void							push_fd(struct pollfd new_fd);
+		void							push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events);
 
 		//remove a connection from our vector of fds
-		void		pop_fd(void);
+		void							pop_fd(void);
 		
-		size_t		vector_size();
+		size_t							vector_size();
 		
 		//poll our fds to see if a request came through from a connection and send the response if there was
-		int			poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+		int								poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+
+
 
 		//treat the request according to the set of rules of our servers
+		std::pair<bool, std::string>	build_http_response(Request &request);
+		int								send_http_response(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+		std::pair<int, Request>			receive_http_request(int i);
 		std::pair<bool, std::string>	treat_request(Request &req);
 		std::pair<bool, Location> 		match_location(std::string requested_page);
 		void							display_IP(void);
@@ -93,8 +98,8 @@ class Server
 		std::pair<bool, std::string>	treat_get_request(Request &req, Location &location, std::string path, std::string server_directory);
 		std::pair<bool, std::string>	treat_post_request(Request & request, Location &location, std::string path, std::string server_directory);
 		std::string						treat_delete_request(std::string path);
-		int 							send_all(int fd, std::string http_response, int *len);
-		std::pair<int, Request>			receive_http_request(int i);
+		int								send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index);
+		int							send_data(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
 
 };
 

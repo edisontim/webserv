@@ -22,7 +22,7 @@ def child():
 
 	mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	mysock.connect((ip, port))
-	cmd = 'GET / HTTP/1.1\r\n\r\n'.encode()
+	cmd = 'GET /upload/lol/ HTTP/1.1\r\n\r\n'.encode()
 	mysock.send(cmd)
 	data = mysock.recv(1024)
 	data = data.decode('ASCII')
@@ -38,7 +38,7 @@ def child():
 
 
 pids = []
-pid_number = 300
+pid_number = 500
 
 for i in range(pid_number):
 	try :
@@ -54,5 +54,5 @@ time.sleep(4)
 
 for i in range(pid_number):
 	os.kill(pids[i], signal.SIGUSR1)
-	time.sleep(0.001)
+	time.sleep(0.01)
 sys.exit()

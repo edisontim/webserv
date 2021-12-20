@@ -62,11 +62,55 @@ void cleanup(int)
 	G_QUIT = 1;
 }
 
+int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds)
+{
+	size_t i;
+	int poll_count;
+
+	while (1)
+	{
+		i = 0;
+
+		//poll our vector of fds
+		poll_count = poll(all_pfds.data(), all_pfds.size(), -1);
+
+		if (poll_count == -1 && !G_QUIT)
+		{
+			std::cerr << "poll error" << std::endl;
+			return (0);
+		}
+	
+		//go through our array to check if one fd is ready to read
+		while (i < all_pfds.size())
+		{
+			if (all_pfds[i].revents & POLLIN) //one is ready
+			{
+				//get the index of the corresponding server that should treat the request
+				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
+				servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+			}
+			i++;
+		}
+		i = 0;
+		while(i < all_pfds.size())
+		{
+			if (all_pfds[i].revents & POLLOUT)
+			{
+				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
+				if ((servers[id_index.first]->send_data(all_pfds, i, id_index.second) == -2))
+					break;
+			}
+			i++;
+		}
+		if (G_QUIT == 1)
+			return (1);
+	}
+	return (1);
+}
+
 int main(int argc, char *argv[])
 {
-	unsigned int	i;
-	int				poll_count;
-	
+
 	//input buffer
 	std::string buff;
 
@@ -76,7 +120,7 @@ int main(int argc, char *argv[])
 	//avoid quitting program without being able to cleanup the vector and disconnecting the sockets. Really necessary ?
 	// signal(SIGQUIT, SIG_IGN);
 	// signal(SIGTSTP, SIG_IGN);
-	// signal(SIGINT, &cleanup);
+	signal(SIGINT, &cleanup);
 
 	//if we have a path to a configuration file then parse it, otherwise parse the default 
 	//configuration file in conf.d/. If the argument provided wasn't an openable file 
@@ -95,9 +139,9 @@ int main(int argc, char *argv[])
 		if (a <= 0)
 		{
 			if (a == -1)
-				std::cerr << RED << "Config file is empty" << NOCOLOR << std::endl;
+				std::cerr << RED << BOLD << "Config file is empty" << NOCOLOR << NORMAL << std::endl;
 			else
-				std::cerr << RED << "Config file not found" << NOCOLOR << std::endl;
+				std::cerr << RED << BOLD << "Config file not found" << NOCOLOR << NORMAL << std::endl;
 			return (1);
 		}
 	}
@@ -109,39 +153,20 @@ int main(int argc, char *argv[])
 
 	if (servers.empty())
 	{
-		std::cerr << RED << "Configuration file holds no valid server configuration" << NOCOLOR << std::endl;
+		std::cerr << RED << BOLD << "Configuration file holds no valid server configuration" << NOCOLOR << NORMAL << std::endl;
 		return (1);
 	}
 
 	std::vector<struct pollfd> all_pfds;
 
+	//fill the all_pfds vector of pfds with the listening fds of the servers
 	fill(servers, all_pfds);
 
-	while (1)
-	{
-		i = 0;
+	//run the main webserver loop
+	webserv(servers, all_pfds);
 
-		// reset_revents(all_pfds);
-		//poll our vector of fds
-		poll_count = poll(all_pfds.data(), all_pfds.size(), -1);
-		if (poll_count == -1)
-		{
-			std::cerr << "poll error" << std::endl;
-			return (0);
-		}
-
-		while(i < all_pfds.size())
-		{
-			if (all_pfds[i].revents & POLLIN) //one is ready
-			{
-				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
-				servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
-			}
-			i++;
-		}
-		if (G_QUIT == 1)
-			break;
-	}
+	//exit on CTRL-C, cleanup the server vector
 	clean_exit(servers);
+
 	return (0);
 }
