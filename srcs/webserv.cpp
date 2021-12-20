@@ -81,13 +81,24 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 		}
 	
 		//go through our array to check if one fd is ready to read
-		while(i < all_pfds.size())
+		while (i < all_pfds.size())
 		{
 			if (all_pfds[i].revents & POLLIN) //one is ready
 			{
 				//get the index of the corresponding server that should treat the request
 				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
 				servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+			}
+			i++;
+		}
+		i = 0;
+		while(i < all_pfds.size())
+		{
+			if (all_pfds[i].revents & POLLOUT)
+			{
+				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
+				if ((servers[id_index.first]->send_data(all_pfds, i, id_index.second) == -2))
+					break;
 			}
 			i++;
 		}

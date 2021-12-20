@@ -89,28 +89,65 @@ size_t Server::vector_size(void)
 	return (pfds.size());
 }
 
-//send all the data
-int Server::send_all(int fd, std::string http_response, int *len, std::vector<struct pollfd> &all_pfds, int all_index)
-{
-	int total = 0;
-	int bytes_left = *len;
-	int n;
-	while (total < *len)
-	{
-		poll(all_pfds.data() + all_index, 1, 0);
-		if (!(all_pfds[all_index].revents & POLLOUT))
-			continue;
-		n = send(fd, http_response.c_str() + total, bytes_left, 0);
-		if (n == -1)
-			break ;
-		total += n;
-		bytes_left -= n;
-	}
-	*len = total; //actual number sent
-	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
-}
+Request all_req[OPEN_MAX];
 
 std::string	full_request[OPEN_MAX];
+std::pair<bool, std::string> full_response[OPEN_MAX];
+
+//send all the data
+int Server::send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index)
+{
+	int n = 0;
+	size_t size = full_response[all_pfds[all_index].fd].second.length();
+	const char *buff = full_response[all_pfds[all_index].fd].second.c_str();
+	n = send(fd, buff, size, 0);
+	if (n == -1)
+		return (n);
+
+	full_response[all_pfds[all_index].fd].second = full_response[all_pfds[all_index].fd].second.substr(n);
+
+	if (full_response[all_pfds[all_index].fd].second != "")
+		return (-2);
+	return (n);
+}
+
+
+int Server::send_http_response(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
+{
+	int bytes_sent = send_all(all_pfds[all_index].fd, all_pfds, all_index);
+	if (bytes_sent == -2)
+		return (-2);
+	//number of bytes send differs from the size of the string, that means we had a problem with send()
+	if (bytes_sent == -1)
+	{
+		if (bytes_sent == -1)
+			std::cerr << "error on send" << std::endl;
+		else
+			std::cerr << "send didn't write all the package" << std::endl;
+		close_connection(all_pfds, server_index, all_index);
+		return (-2);
+	}
+	return (1);
+}
+
+int Server::send_data(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
+{
+	//no response is there
+	if (full_response[all_pfds[all_index].fd].second == "")
+		return (-1);
+	//response was not fully sent
+	if (send_http_response(all_pfds, all_index, server_index) == -2)
+		return (-2);
+	//response was fully sent and connection needs to be closed on 301
+	if (!full_response[all_pfds[all_index].fd].first)
+	{
+		full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
+		close_connection(all_pfds, server_index, all_index);
+	}
+	else // everything went good, reset the global response variable
+		full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
+	return (1);
+}
 
 std::pair<int, Request>	Server::receive_http_request(int i)
 {
@@ -184,20 +221,6 @@ std::pair<bool, std::string> Server::build_http_response(Request &request)
 	return (request_treated);
 }
 
-void Server::send_http_response(std::vector<struct pollfd> &all_pfds, std::pair<bool, std::string> request_treated, int all_index, int server_index)
-{
-	int len = request_treated.second.length();
-	int bytes_sent = send_all(all_pfds[all_index].fd, request_treated.second, &len, all_pfds, all_index);
-	//number of bytes send differs from the size of the string, that means we had a problem with send()
-	if (bytes_sent == -1 || len != static_cast<int>(request_treated.second.length()))
-	{
-		if (bytes_sent == -1)
-			std::cerr << "error on send" << std::endl;
-		else
-			std::cerr << "send didn't write all the package" << std::endl;
-		close_connection(all_pfds, server_index, all_index);
-	}
-}
 
 int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
 {
@@ -224,7 +247,7 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 			std::cerr << "error on accepting new connection" << std::endl;
 		else
 		{
-			push_fd(all_pfds, new_connection, POLLIN);
+			push_fd(all_pfds, new_connection, POLLIN | POLLOUT);
 			std::cout << "new connection from " << inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr *)&remoteaddr), remote_ip, INET6_ADDRSTRLEN) << std::endl;
 		}
 	}
@@ -255,24 +278,8 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 			return (0);
 
 		std::pair<bool, std::string> request_treated = build_http_response(request);
-
-		std::string http_response = request_treated.second;
-
-		//check if the fd of the incoming request is also ready for a write 
-		all_pfds[all_index].events = POLLOUT;
-		poll(all_pfds.data() + all_index, 1, 0);
-
 		full_request[all_pfds[all_index].fd] = "";
-
-		if (all_pfds[all_index].revents & POLLOUT)
-		{
-			send_http_response(all_pfds, request_treated, all_index, server_index);
-
-		}
-		all_pfds[all_index].events = POLLIN;
-
-		if (!request_treated.first)
-			close_connection(all_pfds, server_index, all_index);
+		full_response[all_pfds[all_index].fd] = request_treated;
 	}
 	return (1);
 }
