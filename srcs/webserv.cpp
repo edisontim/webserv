@@ -66,6 +66,7 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 {
 	size_t i;
 	int poll_count;
+	int recv = 0;
 
 	while (1)
 	{
@@ -87,10 +88,14 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 			{
 				//get the index of the corresponding server that should treat the request
 				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
-				servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+				recv = servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+				if (recv == -1)
+					break ;
 			}
 			i++;
 		}
+		if (recv == -1)
+			continue ;
 		i = 0;
 		while(i < all_pfds.size())
 		{

@@ -90,7 +90,7 @@ class Server
 		//treat the request according to the set of rules of our servers
 		std::pair<bool, std::string>	build_http_response(Request &request);
 		int								send_http_response(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
-		std::pair<int, Request>			receive_http_request(int i);
+		int								receive_http_header(int i);
 		std::pair<bool, std::string>	treat_request(Request &req);
 		std::pair<bool, Location> 		match_location(std::string requested_page);
 		void							display_IP(void);
@@ -99,7 +99,8 @@ class Server
 		std::pair<bool, std::string>	treat_post_request(Request & request, Location &location, std::string path, std::string server_directory);
 		std::string						treat_delete_request(std::string path);
 		int								send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index);
-		int							send_data(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+		int								send_data(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+		int								receive_http_body(int i);
 
 };
 

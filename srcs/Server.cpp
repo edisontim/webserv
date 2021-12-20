@@ -91,8 +91,9 @@ size_t Server::vector_size(void)
 
 Request all_req[OPEN_MAX];
 
-std::string	full_request[OPEN_MAX];
-std::pair<bool, std::string> full_response[OPEN_MAX];
+std::string						full_request[OPEN_MAX];
+Request							req[OPEN_MAX];
+std::pair<bool, std::string>	full_response[OPEN_MAX];
 
 //send all the data
 int Server::send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index)
@@ -170,57 +171,54 @@ void	reformat_data(Request & request)
 	}
 }
 
-std::pair<int, Request>	Server::receive_http_request(int i)
+int Server::receive_http_header(int i)
 {
 	char		buff[8000];
 	int			nbytes;
 	int			find;
-	Request		request;
 
-	while (1)
-	{
-		poll(&(pfds[i]), 1, -1);
-		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
-		if (nbytes == 0)
-			return (std::make_pair(nbytes, request));
-		if (nbytes < 0)
-			return (std::make_pair(nbytes, request));
-		full_request[pfds[i].fd] += std::string(buff, nbytes);
-		memset(buff, 0, sizeof(buff));
-		find = full_request[pfds[i].fd].find("\r\n\r\n");
-		if (find >= 0) {
-			request.fill_object(full_request[pfds[i].fd]);
-			break;
-		}
-	}
-
-	
-	if (request.type == "POST")
-	{
-		long				to_read;
-		std::stringstream	ss_content_length(request.headers["Content-Length"]);
-		unsigned int		content_length = 0;
-
-		ss_content_length >> content_length;
-		to_read = content_length - request.data.size();
-
-		while (to_read > 0)
-		{
-			poll(&(pfds[i]), 1, -1);
-			nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
-			if (nbytes == 0)
-				return (std::make_pair(nbytes, request));
-			if (nbytes < 0)
-				return (std::make_pair(nbytes, request));
-			request.data += std::string(buff, nbytes);
-			memset(buff, 0, sizeof(buff));
-			to_read -= nbytes;
-		}
-		if (request.headers["Content-Type"] == "multipart/form-data;")
-			reformat_data(request);
-	}
-	return (std::make_pair(nbytes, request));
+	nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+	if (nbytes == 0)
+		return (nbytes);
+	if (nbytes < 0)
+		return (nbytes);
+	full_request[pfds[i].fd] += std::string(buff, nbytes);
+	memset(buff, 0, sizeof(buff));
+	find = full_request[pfds[i].fd].find("\r\n\r\n");
+	if (find >= 0)
+		req[pfds[i].fd].fill_object(full_request[pfds[i].fd]);
+	else
+		return (-2);
+	return (nbytes);
 }
+
+int Server::receive_http_body(int i)
+{
+	char		buff[2000];
+	int			nbytes = 0;
+
+	long				to_read;
+	std::stringstream	ss_content_length(req[pfds[i].fd].headers["Content-Length"]);
+	unsigned int		content_length = 0;
+
+	ss_content_length >> content_length;
+	to_read = content_length - req[pfds[i].fd].data.size();
+	nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+	if (nbytes == 0)
+		return (nbytes);
+	if (nbytes < 0)
+		return (nbytes);
+	req[pfds[i].fd].data += std::string(buff, nbytes);
+
+	memset(buff, 0, sizeof(buff));
+	to_read -= nbytes;
+	if (to_read != 0)
+		return (-2);
+	if (req[pfds[i].fd].headers["Content-Type"] == "multipart/form-data;")
+		reformat_data(req[pfds[i].fd]);
+	return (nbytes);
+}
+
 
 std::pair<bool, std::string> Server::build_http_response(Request &request)
 {
@@ -284,25 +282,35 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 	else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 	{
 		std::pair<int, Request>	pair_bytes_request;
-		pair_bytes_request = receive_http_request(server_index);
-		if (pair_bytes_request.first <= 0)
+		if (full_request[all_pfds[all_index].fd].empty())
 		{
+			pair_bytes_request.first = receive_http_header(server_index);
+			
+			//request hasn't reached a /r/n/r/n yet
 			if (pair_bytes_request.first == -2)
-			{
 				return (0);
+			if (pair_bytes_request.first <= 0)
+			{
+				if (pair_bytes_request.first == 0) //connection closed
+					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
+				if (pair_bytes_request.first == -1)
+					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
+				full_request[all_pfds[all_index].fd] = "";
+				close(all_pfds[all_index].fd);
+				pfds.erase(pfds.begin() + server_index);
+				all_pfds.erase(all_pfds.begin() + all_index);
+				return (0) ;
 			}
-			if (pair_bytes_request.first == 0) //connection closed
-				std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
-			if (pair_bytes_request.first < 0)
-				std::cerr << "Ressource temporarily unavailable probably" << std::endl;
-			full_request[all_pfds[all_index].fd] = "";
-			close(all_pfds[all_index].fd);
-			pfds.erase(pfds.begin() + server_index);
-			all_pfds.erase(all_pfds.begin() + all_index);
-			return (0) ;
 		}
 
-		Request	request = pair_bytes_request.second;
+		if (req[pfds[server_index].fd].type == "POST")
+		{
+			if (receive_http_body(server_index) == -2)
+				return (-1);
+		}
+		
+
+		Request	request = req[pfds[server_index].fd];
 
 		if (request.type.empty() || request.uri.empty() || request.protocol.empty())
 			return (0);

@@ -333,7 +333,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 
 	//Connection type
 	response += "Connection: Keep-Alive\r\n";
-	response += "Keep-Alive: timeout=5, max=100\r\n\r\n";
+	response += "Keep-Alive: timeout=100, max=100\r\n\r\n";
 	response += body;
 	return (response);
 }
