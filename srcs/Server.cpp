@@ -90,14 +90,17 @@ size_t Server::vector_size(void)
 }
 
 //send all the data
-int Server::send_all(int fd, std::string http_response, int *len)
+int Server::send_all(int fd, std::string http_response, int *len, std::vector<struct pollfd> &all_pfds, int all_index)
 {
 	int total = 0;
 	int bytes_left = *len;
 	int n;
 	while (total < *len)
 	{
-		n = send(fd, http_response.c_str(), http_response.length(), 0);
+		poll(all_pfds.data() + all_index, 1, 0);
+		if (!(all_pfds[all_index].revents & POLLOUT))
+			continue;
+		n = send(fd, http_response.c_str() + total, bytes_left, 0);
 		if (n == -1)
 			break ;
 		total += n;
@@ -107,29 +110,27 @@ int Server::send_all(int fd, std::string http_response, int *len)
 	return (n == -1 ? -1 : 0); //return -1 on failure of send, 0 otherwise
 }
 
+std::string	full_request[OPEN_MAX];
+
 std::pair<int, Request>	Server::receive_http_request(int i)
 {
-	char		buff[512];
-	std::string	full_request;
+	char		buff[8000];
 	int			nbytes;
 	int			find;
 	Request		request;
 
-	while (1)
-	{
-		nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
-		if (nbytes == 0)
-			return (std::make_pair(nbytes, request));
-		if (nbytes < 0)
-			return (std::make_pair(nbytes, request));
-		full_request += std::string(buff, nbytes);
-		memset(buff, 0, sizeof(buff));
-		find = full_request.find("\r\n\r\n");
-		if (find >= 0) {
-			request.fill_object(full_request);
-			break;
-		}
-	}
+	nbytes = recv(pfds[i].fd, buff, sizeof(buff), 0);
+	if (nbytes == 0)
+		return (std::make_pair(nbytes, request));
+	if (nbytes < 0)
+		return (std::make_pair(nbytes, request));
+	full_request[pfds[i].fd] += std::string(buff, nbytes);
+	memset(buff, 0, sizeof(buff));
+	find = full_request[pfds[i].fd].find("\r\n\r\n");
+	if (find >= 0)
+		request.fill_object(full_request[pfds[i].fd]);
+	else
+		return (std::make_pair(-2, request));
 	if (request.type == "POST")
 	{
 		long				to_read;
@@ -186,7 +187,7 @@ std::pair<bool, std::string> Server::build_http_response(Request &request)
 void Server::send_http_response(std::vector<struct pollfd> &all_pfds, std::pair<bool, std::string> request_treated, int all_index, int server_index)
 {
 	int len = request_treated.second.length();
-	int bytes_sent = send_all(all_pfds[all_index].fd, request_treated.second, &len);
+	int bytes_sent = send_all(all_pfds[all_index].fd, request_treated.second, &len, all_pfds, all_index);
 	//number of bytes send differs from the size of the string, that means we had a problem with send()
 	if (bytes_sent == -1 || len != static_cast<int>(request_treated.second.length()))
 	{
@@ -231,13 +232,17 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 	{
 		std::pair<int, Request>	pair_bytes_request;
 		pair_bytes_request = receive_http_request(server_index);
-
 		if (pair_bytes_request.first <= 0)
 		{
+			if (pair_bytes_request.first == -2)
+			{
+				return (0);
+			}
 			if (pair_bytes_request.first == 0) //connection closed
 				std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
 			if (pair_bytes_request.first < 0)
 				std::cerr << "Ressource temporarily unavailable probably" << std::endl;
+			full_request[all_pfds[all_index].fd] = "";
 			close(all_pfds[all_index].fd);
 			pfds.erase(pfds.begin() + server_index);
 			all_pfds.erase(all_pfds.begin() + all_index);
@@ -257,10 +262,15 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 		all_pfds[all_index].events = POLLOUT;
 		poll(all_pfds.data() + all_index, 1, 0);
 
+		full_request[all_pfds[all_index].fd] = "";
+
 		if (all_pfds[all_index].revents & POLLOUT)
+		{
 			send_http_response(all_pfds, request_treated, all_index, server_index);
-		
+
+		}
 		all_pfds[all_index].events = POLLIN;
+
 		if (!request_treated.first)
 			close_connection(all_pfds, server_index, all_index);
 	}

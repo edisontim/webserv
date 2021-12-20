@@ -107,17 +107,17 @@ std::string autoindex(std::string path, std::string uri)
 "<!doctype html> \
 <html>\
 	<head>\
-		<title>Nope</title>\
-		<link rel=\"stylesheet\" href=\"mystyle.css\">\
-		<link rel=\"icon\" type=\"image/png\" href=\"favicon.png\">\
+		<title>Index of " + uri + "</title>\
 	</head>\
 <body>\
 <h1>Index of " + uri + "</h1><hr><pre>";
+
 	while ((current_entry = readdir(dir)))
 	{
 		body += add_a_tag(current_entry->d_name);
 		body += "</br>";
 	}
+
 	body += 
 "</pre><hr>\
 </body>\
@@ -148,9 +148,16 @@ std::map<std::string, std::string> file_extensions_map(void)
 	std::map<std::string, std::string> ret;
 	ret.insert(std::make_pair("html", "text/html"));
 	ret.insert(std::make_pair("png", "image/png"));
-	ret.insert(std::make_pair("jpeg", "image/jpeg"));
+	ret.insert(std::make_pair("jpg", "image/jpeg"));
 	ret.insert(std::make_pair("css", "text/css"));
 	ret.insert(std::make_pair("ico", "image/x-icon"));
+	ret.insert(std::make_pair("bmp", "image/bmp"));
+	ret.insert(std::make_pair("gif", "image/gif"));
+	ret.insert(std::make_pair("mp3", "audio/mpeg"));
+	ret.insert(std::make_pair("mpeg", "video/mpeg"));
+	ret.insert(std::make_pair("pdf", "application/pdf"));
+	ret.insert(std::make_pair("mp4", "video/mp4"));
+
 	return (ret);
 }
 
@@ -196,6 +203,21 @@ std::string file_content(std::string full_path, int from_php)
 	}
 }
 
+std::string time_headers(std::string &path)
+{
+	std::string buff;
+	buff = "Date: ";
+	buff += dt_string(path, CURRENT);
+	buff += "\r\n";
+
+	//get time of last modification of file
+	buff += "Last modified: ";
+	buff += dt_string(path, LAST_MODIFIED);
+	buff += "\r\n";
+
+	return (buff);
+}
+
 std::string dt_string(std::string full_path, DT which)
 {
 	char buff[1000];
@@ -203,7 +225,8 @@ std::string dt_string(std::string full_path, DT which)
 	if (which == CURRENT)
 	{
 		time_t now = time(0);
-		struct tm ltm = *gmtime(&now);
+		struct tm ltm;
+		ltm = *localtime(&now);
 		strftime(buff, sizeof(buff), "%a, %d %b %Y %T %Z", &ltm);
 	}
 	else //we need the last modified time string
@@ -211,7 +234,7 @@ std::string dt_string(std::string full_path, DT which)
 		struct stat a;
 		if (stat(full_path.c_str(), &a) != 0)
 			return (std::string());
-		struct tm last_modified = *gmtime(&a.st_mtime);
+		struct tm last_modified = *localtime(&a.st_mtime);
 		strftime(buff, sizeof(buff), "%a, %d %b %Y %T %Z", &last_modified);
 	}
 	return (buff);
@@ -252,29 +275,23 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		response += "Content-type: text/html\r\n";
 		response += "Allow: ";
 		if (path == "true")
-			response += "GET ";
+			response += "GET, ";
 		if (req_uri == "true")
-			response += "POST ";
+			response += "POST, ";
 		if (http_v == "true")
 			response += "DELETE";
+		if (response.substr(response.length() - 2) == ", ")
+			response.resize(response.length() - 2);
 		response += "\r\n\r\n";
 		response += "<h1>405 Try another method!</h1>";
 		return (response);
 	}
 
-	//get current time /!\\ careful, needs to be adapted to WINTER TIME
-	response += "Date: ";
-	response += dt_string(path, CURRENT);
-	response += "\r\n";
-
+	response += time_headers(path);
 	//name of the server and OS it's running on
 	response += "Server: webserv\n\r";
 
-
-	//get time of last modification of file
-	response += "Last modified: ";
-	response += dt_string(path, LAST_MODIFIED);
-	response += "\r\n";
+	//time headers
 
 	//Content-type of file
 	if (status == 1)
@@ -302,11 +319,8 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	else
 	{
 		//get content of HTML file
-		// response += "Accept-Ranges: bytes\r\n";
 		body = file_content(path, from_php);
 	}
-	if (body == "")
-		return (std::string());
 
 	response += "Content-length: ";
 	unsigned int total_length;	
