@@ -1,4 +1,5 @@
 #include "Internet_socket.hpp"
+#include <string.h>
 
 Internet_socket::Internet_socket()
 {
@@ -33,8 +34,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 
 	_service = service;
 
-	bzero(&hints, sizeof(hints));
-	
+	memset((void *)&hints, 0, sizeof(hints));
 	//Take both IPv4 or IPv6
 	hints.ai_family = AF_UNSPEC;
 
@@ -106,7 +106,7 @@ int Internet_socket::bind_listen(const char* hostname, const char *service)
 	ip_port = *(struct sockaddr_in *)iter->ai_addr;
 	freeaddrinfo(res);
 
-	if (listen(socket_fd, 20) == -1)
+	if (listen(socket_fd, 100000) == -1)
 	{
 		socket_fd = LISTEN_FAIL;
 		return (LISTEN_FAIL);

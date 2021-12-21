@@ -68,10 +68,12 @@ void Server::push_fd(struct pollfd new_fd)
 void Server::push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events)
 {
 	struct pollfd new_fd;
-
+	int yes = 1;
 	new_fd.fd = fd;
 	new_fd.events = events;
+	
 	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
+	setsockopt(new_fd.fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
 	//push in both the all_pfds and our server's fds
 	pfds.push_back(new_fd);
@@ -89,8 +91,6 @@ size_t Server::vector_size(void)
 	return (pfds.size());
 }
 
-Request all_req[OPEN_MAX];
-
 std::string						full_request[OPEN_MAX];
 Request							req[OPEN_MAX];
 std::pair<bool, std::string>	full_response[OPEN_MAX];
@@ -105,15 +105,7 @@ int Server::send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index
 	if (n == -1)
 		return (n);
 
-	try
-	{
-		full_response[all_pfds[all_index].fd].second = full_response[all_pfds[all_index].fd].second.substr(n);
-	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
-	
+	full_response[all_pfds[all_index].fd].second = full_response[all_pfds[all_index].fd].second.substr(n);
 
 	if (full_response[all_pfds[all_index].fd].second != "")
 		return (-2);
@@ -154,7 +146,10 @@ int Server::send_data(std::vector<struct pollfd> &all_pfds, int all_index, int s
 		close_connection(all_pfds, server_index, all_index);
 	}
 	else // everything went good, reset the global response variable
+	{
 		full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
+		close_connection(all_pfds, server_index, all_index);
+	}
 	return (1);
 }
 
@@ -181,7 +176,7 @@ void	reformat_data(Request & request)
 
 int Server::receive_http_header(int i)
 {
-	char		buff[8000];
+	char		buff[1000];
 	int			nbytes;
 	int			find;
 
@@ -331,7 +326,7 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 
 int	Server::close_connection(std::vector<struct pollfd> &all_pfds, int server_index, int all_index)
 {
-	shutdown(all_pfds[all_index].fd, SHUT_RDWR);
+	// shutdown(all_pfds[all_index].fd, SHUT_RDWR);
 	close(all_pfds[all_index].fd);
 	all_pfds.erase(all_pfds.begin() + all_index);
 	pfds.erase(pfds.begin() + server_index);
