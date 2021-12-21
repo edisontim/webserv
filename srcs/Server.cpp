@@ -183,7 +183,11 @@ int Server::receive_http_header(int i)
 	memset(buff, 0, sizeof(buff));
 	find = full_request[pfds[i].fd].find("\r\n\r\n");
 	if (find >= 0)
+	{
 		req[pfds[i].fd].fill_object(full_request[pfds[i].fd]);
+		if (req[pfds[i].fd].type != "POST" && req[pfds[i].fd].type != "DELETE" && req[pfds[i].fd].type != "GET")
+			return (-3);
+	}
 	else
 		return (-2);
 	return (nbytes);
@@ -278,12 +282,12 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 	}
 	else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 	{
-		if (full_request[all_pfds[all_index].fd].empty())
+		if (req[all_pfds[all_index].fd].type != "POST")
 		{
 			int bytes = receive_http_header(server_index);
 			//request hasn't reached a /r/n/r/n yet
 			if (bytes == -2)
-				return (-1);
+				return (0);
 			if (bytes <= 0)
 			{
 				if (bytes == 0) //connection closed
@@ -293,6 +297,8 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 					close(all_pfds[all_index].fd);
 					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
 				}
+				if (bytes == -3)
+					close(all_pfds[all_index].fd);
 				full_request[all_pfds[all_index].fd] = "";
 				pfds.erase(pfds.begin() + server_index);
 				all_pfds.erase(all_pfds.begin() + all_index);
