@@ -81,6 +81,8 @@ std::pair<bool, std::string>    php_cgi(Request & request, std::string server_di
 	ss_content_length >> content_length;
 	cgi_output_path = server_directory + "cgi_output.html";
 
+	std::cout << "Got here" << std::endl;
+
 	cgi_args[0] = new char[cgi_path.size() + 1];
 	strcpy(cgi_args[0], cgi_path.c_str());
 	cgi_args[1] = new char[path.size() + 1];

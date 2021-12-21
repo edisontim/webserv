@@ -295,7 +295,7 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 				if (bytes == -1)
 				{
 					close(all_pfds[all_index].fd);
-					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
+					std::cerr << "Ressource temporarily unavailable probably 1" << std::endl;
 				}
 				if (bytes == -3)
 					close(all_pfds[all_index].fd);
@@ -310,12 +310,10 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 		{
 			int nbytes = receive_http_body(server_index);
 			//req.body hasn't reached the content length yet
-			if (nbytes <= 0)
+			if (nbytes <= 0 && (atoi(req[pfds[server_index].fd].headers["Content-Length"].c_str()) != static_cast<int>(req[pfds[server_index].fd].data.length())))
 			{
 				if (nbytes == -2)
 					return (-1);
-				if (nbytes == 0) //connection closed
-					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
 				if (nbytes == -1)
 				{
 					close(all_pfds[all_index].fd);
