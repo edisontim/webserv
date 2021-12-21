@@ -64,7 +64,7 @@ std::pair<bool, std::string>    upload_file(Request & request, std::string uploa
     request.data.erase(request.data.rfind(request.headers["boundary"]) - 3);
     // if directory doesn't exist, create it
     if (!directory_exists(upload_path)) {
-        if (mkdir(upload_path.c_str(), 0644) == -1)
+        if (mkdir(upload_path.c_str(), 0744) == -1)
             return (internal_server_error());
     }
     // make sure path ends with /
