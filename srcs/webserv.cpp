@@ -88,7 +88,7 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 			{
 				//get the index of the corresponding server that should treat the request
 				std::pair<int, int> id_index = id_server(servers, all_pfds[i].fd);
-				recv = servers[id_index.first]->poll_fds(all_pfds, i, id_index.second);
+				recv = servers[id_index.first]->inc_data_and_response(all_pfds, i, id_index.second);
 				if (recv == -1)
 					break ;
 			}

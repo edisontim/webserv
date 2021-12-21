@@ -208,6 +208,7 @@ int Server::receive_http_body(int i)
 		return (nbytes);
 	if (nbytes < 0)
 		return (nbytes);
+	std::cout << req[pfds[i].fd].data << std::endl;
 	req[pfds[i].fd].data += std::string(buff, nbytes);
 
 	memset(buff, 0, sizeof(buff));
@@ -250,7 +251,7 @@ std::pair<bool, std::string> Server::build_http_response(Request &request)
 }
 
 
-int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
+int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_index, int server_index)
 {
 
 	//buffer to hold the ip of our incoming connection
@@ -281,19 +282,18 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 	}
 	else //means that this is not out socket_fd, so this is a normal connection being ready to be read, so an http request is there
 	{
-		std::pair<int, Request>	pair_bytes_request;
 		if (full_request[all_pfds[all_index].fd].empty())
 		{
-			pair_bytes_request.first = receive_http_header(server_index);
+			int bytes = receive_http_header(server_index);
 			
 			//request hasn't reached a /r/n/r/n yet
-			if (pair_bytes_request.first == -2)
+			if (bytes == -2)
 				return (0);
-			if (pair_bytes_request.first <= 0)
+			if (bytes <= 0)
 			{
-				if (pair_bytes_request.first == 0) //connection closed
+				if (bytes == 0) //connection closed
 					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
-				if (pair_bytes_request.first == -1)
+				if (bytes == -1)
 					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
 				full_request[all_pfds[all_index].fd] = "";
 				close(all_pfds[all_index].fd);
@@ -305,10 +305,10 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 
 		if (req[pfds[server_index].fd].type == "POST")
 		{
+			//req.body hasn't reached the content length yet
 			if (receive_http_body(server_index) == -2)
 				return (-1);
 		}
-		
 
 		Request	request = req[pfds[server_index].fd];
 
@@ -318,6 +318,7 @@ int Server::poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int se
 		std::pair<bool, std::string> request_treated = build_http_response(request);
 		full_request[all_pfds[all_index].fd] = "";
 		full_response[all_pfds[all_index].fd] = request_treated;
+		std::cout << request.data << std::endl;
 	}
 	return (1);
 }

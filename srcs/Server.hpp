@@ -83,7 +83,7 @@ class Server
 		size_t							vector_size();
 		
 		//poll our fds to see if a request came through from a connection and send the response if there was
-		int								poll_fds(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
+		int								inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_index, int server_index);
 
 
 
