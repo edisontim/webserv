@@ -119,13 +119,15 @@ int Server::send_http_response(std::vector<struct pollfd> &all_pfds, int all_ind
 	if (bytes_sent == -2)
 		return (-2);
 	//number of bytes send differs from the size of the string, that means we had a problem with send()
-	if (bytes_sent == -1)
+	if (bytes_sent <= 0)
 	{
 		if (bytes_sent == -1)
+		{
 			std::cerr << "error on send" << std::endl;
+			close_connection(all_pfds, server_index, all_index);
+		}
 		else
 			std::cerr << "send didn't write all the package" << std::endl;
-		close_connection(all_pfds, server_index, all_index);
 		return (-2);
 	}
 	return (1);
@@ -139,17 +141,9 @@ int Server::send_data(std::vector<struct pollfd> &all_pfds, int all_index, int s
 	//response was not fully sent
 	if (send_http_response(all_pfds, all_index, server_index) == -2)
 		return (-2);
-	//response was fully sent and connection needs to be closed on 301
-	if (!full_response[all_pfds[all_index].fd].first)
-	{
-		full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
-		close_connection(all_pfds, server_index, all_index);
-	}
-	else // everything went good, reset the global response variable
-	{
-		full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
-		close_connection(all_pfds, server_index, all_index);
-	}
+	//response was fully sent and connection needs to be closed
+	full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
+	close_connection(all_pfds, server_index, all_index);
 	return (1);
 }
 
@@ -287,18 +281,19 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 		if (full_request[all_pfds[all_index].fd].empty())
 		{
 			int bytes = receive_http_header(server_index);
-			
 			//request hasn't reached a /r/n/r/n yet
 			if (bytes == -2)
-				return (0);
+				return (-1);
 			if (bytes <= 0)
 			{
 				if (bytes == 0) //connection closed
 					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
 				if (bytes == -1)
+				{
+					close(all_pfds[all_index].fd);
 					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
+				}
 				full_request[all_pfds[all_index].fd] = "";
-				close(all_pfds[all_index].fd);
 				pfds.erase(pfds.begin() + server_index);
 				all_pfds.erase(all_pfds.begin() + all_index);
 				return (0) ;
@@ -307,9 +302,26 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 
 		if (req[pfds[server_index].fd].type == "POST")
 		{
+			int nbytes = receive_http_body(server_index);
 			//req.body hasn't reached the content length yet
-			if (receive_http_body(server_index) == -2)
-				return (-1);
+			if (nbytes <= 0)
+			{
+				if (nbytes == -2)
+					return (-1);
+				if (nbytes == 0) //connection closed
+					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
+				if (nbytes == -1)
+				{
+					close(all_pfds[all_index].fd);
+					std::cerr << "Ressource temporarily unavailable probably" << std::endl;
+				}
+				full_request[all_pfds[all_index].fd] = "";
+				req[pfds[server_index].fd] = Request();
+				full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
+				pfds.erase(pfds.begin() + server_index);
+				all_pfds.erase(all_pfds.begin() + all_index);
+				return (0);
+			}
 		}
 
 		Request	request = req[pfds[server_index].fd];
@@ -326,7 +338,6 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 
 int	Server::close_connection(std::vector<struct pollfd> &all_pfds, int server_index, int all_index)
 {
-	// shutdown(all_pfds[all_index].fd, SHUT_RDWR);
 	close(all_pfds[all_index].fd);
 	all_pfds.erase(all_pfds.begin() + all_index);
 	pfds.erase(pfds.begin() + server_index);
