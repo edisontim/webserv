@@ -105,7 +105,15 @@ int Server::send_all(int fd, std::vector<struct pollfd> &all_pfds, int all_index
 	if (n == -1)
 		return (n);
 
-	full_response[all_pfds[all_index].fd].second = full_response[all_pfds[all_index].fd].second.substr(n);
+	try
+	{
+		full_response[all_pfds[all_index].fd].second = full_response[all_pfds[all_index].fd].second.substr(n);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+	}
+	
 
 	if (full_response[all_pfds[all_index].fd].second != "")
 		return (-2);
@@ -194,7 +202,7 @@ int Server::receive_http_header(int i)
 
 int Server::receive_http_body(int i)
 {
-	char		buff[2000];
+	char		buff[8000];
 	int			nbytes = 0;
 
 	long				to_read;
@@ -208,7 +216,6 @@ int Server::receive_http_body(int i)
 		return (nbytes);
 	if (nbytes < 0)
 		return (nbytes);
-	std::cout << req[pfds[i].fd].data << std::endl;
 	req[pfds[i].fd].data += std::string(buff, nbytes);
 
 	memset(buff, 0, sizeof(buff));
@@ -318,7 +325,6 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 		std::pair<bool, std::string> request_treated = build_http_response(request);
 		full_request[all_pfds[all_index].fd] = "";
 		full_response[all_pfds[all_index].fd] = request_treated;
-		std::cout << request.data << std::endl;
 	}
 	return (1);
 }

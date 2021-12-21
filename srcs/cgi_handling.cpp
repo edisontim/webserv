@@ -89,7 +89,6 @@ std::pair<bool, std::string>    php_cgi(Request & request, std::string server_di
 
 	if ((file_fd = open(cgi_output_path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
 		return (internal_server_error());
-
 	if (pipe(tubes) == -1)
 		return (internal_server_error());
 
