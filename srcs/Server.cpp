@@ -69,11 +69,11 @@ void Server::push_fd(std::vector<struct pollfd> &all_pfds, int fd, int events)
 {
 	struct pollfd new_fd;
 	int yes = 1;
+	fcntl(fd, F_SETFL, O_NONBLOCK);
+	setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 	new_fd.fd = fd;
 	new_fd.events = events;
 	
-	fcntl(new_fd.fd, F_SETFL, O_NONBLOCK);
-	setsockopt(new_fd.fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
 	//push in both the all_pfds and our server's fds
 	pfds.push_back(new_fd);
@@ -142,8 +142,10 @@ int Server::send_data(std::vector<struct pollfd> &all_pfds, int all_index, int s
 	if (send_http_response(all_pfds, all_index, server_index) == -2)
 		return (-2);
 	//response was fully sent and connection needs to be closed
+
 	full_response[all_pfds[all_index].fd] = std::make_pair(false, "");
 	close_connection(all_pfds, server_index, all_index);
+
 	return (1);
 }
 
@@ -293,15 +295,9 @@ int Server::inc_data_and_response(std::vector<struct pollfd> &all_pfds, int all_
 				if (bytes == 0) //connection closed
 					std::cout << "Connection closed by client at socket " << all_pfds[all_index].fd << std::endl;
 				if (bytes == -1)
-				{
-					close(all_pfds[all_index].fd);
 					std::cerr << "Ressource temporarily unavailable probably 1" << std::endl;
-				}
-				if (bytes == -3)
-					close(all_pfds[all_index].fd);
 				full_request[all_pfds[all_index].fd] = "";
-				pfds.erase(pfds.begin() + server_index);
-				all_pfds.erase(all_pfds.begin() + all_index);
+				close_connection(all_pfds, server_index, all_index);
 				return (0) ;
 			}
 		}

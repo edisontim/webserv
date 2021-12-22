@@ -80,7 +80,6 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 			std::cerr << "poll error" << std::endl;
 			return (0);
 		}
-	
 		//go through our array to check if one fd is ready to read
 		while (i < all_pfds.size())
 		{
@@ -92,6 +91,7 @@ int webserv(std::vector<Server *> &servers, std::vector<struct pollfd> &all_pfds
 				if (recv == -1)
 					break ;
 			}
+			// std::cout << "Opened sockets : " << all_pfds[i].fd << std::endl;
 			i++;
 		}
 		if (recv == -1)
@@ -123,8 +123,7 @@ int main(int argc, char *argv[])
 	std::vector<Server *> servers;
 
 	//avoid quitting program without being able to cleanup the vector and disconnecting the sockets. Really necessary ?
-	// signal(SIGQUIT, SIG_IGN);
-	// signal(SIGTSTP, SIG_IGN);
+
 	signal(SIGINT, &cleanup);
 
 	//if we have a path to a configuration file then parse it, otherwise parse the default 

@@ -84,8 +84,8 @@ std::string generate_error_page(std::string p_text, std::string code_response)
 	std::string headers = 
 "HTTP/1.1 " + code_response + "\r\n\
 Server: webserv\r\n\
-Content-type: text/html\r\n\
-Content-length: " + itoa(body.length());
+Content-Type: text/html\r\n\
+Content-Length: " + itoa(body.length());
 headers += "\r\nConnection: Closed\r\n\r\n";
 	return (headers + body);
 }
@@ -142,7 +142,7 @@ void *get_in_addr(struct sockaddr *address)
 		return &(((struct sockaddr_in6 *)address)->sin6_addr);
 }
 
-//associates a file extension with the proper content-type of an HTML response
+//associates a file extension with the proper Content-Type of an HTML response
 std::map<std::string, std::string> file_extensions_map(void)
 {
 	std::map<std::string, std::string> ret;
@@ -272,7 +272,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	if (status == 405)
 	{
 		response += " " + itoa(status) + " Method not allowed\r\n";
-		response += "Content-type: text/html\r\n";
+		response += "Content-Type: text/html\r\n";
 		response += "Allow: ";
 		if (path == "true")
 			response += "GET, ";
@@ -293,14 +293,14 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 
 	//time headers
 
-	//Content-type of file
+	//Content-Type of file
 	if (status == 1)
-		response += "Content-type: text/html\r\n";
+		response += "Content-Type: text/html\r\n";
 	else
 	{
 		std::map<std::string, std::string> file_types = file_extensions_map();
 		extension = get_extension(file_types, path);
-		response += "Content-type: ";
+		response += "Content-Type: ";
 		response += extension;
 		response += "\r\n";
 	}
@@ -310,7 +310,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	if (status == 1)
 	{
 		body = autoindex(path, req_uri);
-		response += "Content-length: " + itoa(body.length());
+		response += "Content-Length: " + itoa(body.length());
 		response += "\r\n";
 		response += "Connection: Keep-Alive\r\n\r\n";
 		response += body;
@@ -320,7 +320,7 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 	{
 		//get content of HTML file
 		body = file_content(path, from_php);
-		response += "Content-length: ";
+		response += "Content-Length: ";
 		response += itoa(body.length());
 		response += "\r\n";
 		response += "Connection: Keep-Alive\r\n";
@@ -328,20 +328,5 @@ std::string get_response(std::string path, std::string req_uri, std::string http
 		response += body;
 		return (response);
 	}
-
-	// response += "Content-length: ";
-	// unsigned int total_length;	
-
-	// stringstream ss;
-	// total_length = file_byte_dimension(path);
-	// ss << total_length;
-	// response += ss.str();
-	// response += "\r\n";
-
-	// //Connection type
-	// response += "Connection: Keep-Alive\r\n";
-	// response += "Keep-Alive: timeout=100, max=100\r\n\r\n";
-	// response += body;
-	// return (response);
 }
 
